@@ -35,6 +35,8 @@ class Data {
 
   void loadPart2(int id) {
     part1filter = id;
+    model.basketController.add(0);
+    filterDishes(0);
   }
 
   void filterDishes(int id) {
@@ -75,80 +77,53 @@ class Data {
       return;
     }
     basket[index] = data;
+    basketTotal();
     model.basketController.add(basket.length);
   }
 
   void removeBasketItem(Map<String, dynamic> data) {
     int index = basket.indexWhere((element) => element['f_uuid'] == data['f_uuid']);
     basket.removeAt(index);
+    basketTotal();
     model.basketController.add(basket.length);
   }
 
   void countWorksStartEnd() {
-    final reassingTablesList = <Map<String,dynamic>>[];
-    List<DateTime> times = List<DateTime>.filled(tables.length, DateTime.now());
-    Map<int, int> tablesTimeMap = {};
-    for (int i = 0; i < tables.length; i++) {
-      tablesTimeMap[tables[i]['f_id']] = i;
-    }
-    if (tablesTimeMap.isEmpty) {
-      Dialogs.show(model.tr('Hall not configured'));
-      return;
-    }
-    //fill in progress
+    final last = <int,  DateTime>{
+      1: DateTime.now(),
+      2: DateTime.now()
+    } ;
+
     for (final e in works) {
-      if (e['f_state'] == 1) {
-        final i = e['f_items'].first;
-        i['f_done'] = strToDateTime(i['f_begin'] ?? '').add(Duration(minutes: i['f_cookingtime']));
-        e['f_done'] = i['f_done'];
-        times[tablesTimeMap[e['f_table']]!] = i['f_done'];
-      }
-    }
-    //fill pending
-    for (int i = 0; i < works.length; i++) {
-      final w = works[i];
-      if (w['f_items'] == null) {
+      if (e['progress'] == 1) {
         continue;
       }
-      if (w['f_state'] == 1) {
-        continue;
+      if (e['progress'] > 1 && e['progress'] < 4) {
+        last[e['f_table']] = strToDateTime(e['f_washdate']).add(Duration(minutes: 60));
+        e['f_begin'] = strToDateTime(e['f_washdate']);
+        e['f_done'] = last[e['f_table']];
       }
-      //find nearest box by time
-      var box = -1;
-      var boxTime = DateTime.now();
-      for (var j = 0 ; j < times.length; j++) {
-        if (box < 0) {
-          box = j;
-          boxTime = times[j];
-          continue;
-        }
-        if (boxTime.isAfter(times[j])) {
-          box = j;
-          boxTime = times[j];
-        }
-      }
-      //assign work to finded box
-      final t = tableOfIndex(box);
-      if (w['f_table'] != t['f_id']) {
-        reassingTablesList.add({'f_order': w['f_id'], 'f_table' : t['f_id']});
-      }
-      w['f_table'] = t['f_id'];
-      w['f_tablename'] = t['f_name'];
-      final wi = w['f_items'].first;
-      w['f_begin'] = boxTime;
-      w['f_done'] = boxTime.add(Duration(minutes: wi['f_cookingtime']));
-      times[box] = times[box].add(Duration(minutes: wi['f_cookingtime']));
     }
 
-    //reassing tables
-    if (reassingTablesList.isNotEmpty) {
-      model.httpQuery(AppModel.query_reassign_table, {
-        'query': AppModel.query_call_function,
-        'function': 'sf_reassign_tables',
-        'params': <String,dynamic>{
-          'list': reassingTablesList
+    for (final e in works) {
+      if (e['progress'] != 1) {
+        continue;
+      }
+      final a = last.keys;
+      DateTime lastMin = last[1]!;
+      int lastKey = 1;
+
+      for (final i in a) {
+        if (lastMin.isAfter(last[i]!)) {
+          lastMin = last[i]!;
+          lastKey = i;
         }
-      });
+      }
+      e['f_table'] = lastKey;
+      e['f_tablename'] = 'BOX $lastKey';
+      e['f_begin'] = lastMin;
+      e['f_done'] = lastMin.add(Duration(minutes: 60));
+      last[lastKey] = lastMin.add(Duration(minutes: 60));
     }
   }
 }

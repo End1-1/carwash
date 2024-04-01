@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:ffi';
+
 import 'package:carwash/screens/widgets/payment.dart';
 import 'package:carwash/utils/global.dart';
+import 'package:carwash/utils/http_query.dart';
 import 'package:carwash/utils/prefs.dart';
 import 'package:carwash/widgets/dialogs.dart';
 import 'package:carwash/widgets/text_form_field.dart';
@@ -9,6 +13,9 @@ import 'app/model.dart';
 
 class ProcessEndScreen {
   static Future<bool?> show(Map<String, dynamic> o, AppModel model) async {
+    if (o['progress'] != 4) {
+      return false;
+    }
     return await showDialog(
         context: Prefs.navigatorKey.currentContext!,
         builder: (BuildContext context) {
@@ -23,20 +30,33 @@ class ProcessEndScreen {
         if (o['f_state'] == 1) {
           await model.httpQuery(AppModel.query_end_order, {
             'query': AppModel.query_call_function,
-            'function': 'sf_end_order',
-            'params': o
+            'sql': "select sf_end_order('${jsonEncode(o)}')"
           });
-          if ((o['f_amountcash'] ?? 0) + (o['f_amountcard'] ?? 0) + (o['f_amountidram'] ?? 0) > 0) {
-            await model.httpQuery(AppModel.query_payment, {
-              'query': AppModel.query_payment,
-              'params': o
-            });
+          if (o['f_print'] == 0) {
+            await model.httpQuery(AppModel.query_print_fiscal, {"id": o['f_id']}, route: HttpQuery.printfiscal);
+            // await model.httpQuery(AppModel.query_payment, {
+            //   'query': AppModel.query_payment,
+            //   'params': o
+            // });
           }
         } else {
+          o.forEach((key, value) {
+            if (value is DateTime) {
+              o[key] = dateTimeToStr(value);
+            }
+          });
           await model.httpQuery(AppModel.query_payment, {
-            'query': AppModel.query_payment,
+            'query': AppModel.query_call_function,
+            'sql': "select sf_end_order('${jsonEncode(o)}')",
             'params': o
           });
+          if (o['f_print'] == 0) {
+            await model.httpQuery(AppModel.query_print_fiscal, {"id": o['f_id']}, route: HttpQuery.printfiscal);
+            // await model.httpQuery(AppModel.query_payment, {
+            //   'query': AppModel.query_payment,
+            //   'params': o
+            // });
+          }
         }
         return true;
       } else {
@@ -49,8 +69,13 @@ class ProcessEndScreen {
 class _ProcessScreenWidget extends StatefulWidget {
   final Map<String, dynamic> o;
   final AppModel model;
+  bool readonly = false;
 
-  const _ProcessScreenWidget(this.o, this.model);
+  _ProcessScreenWidget(this.o, this.model) {
+    readonly = (o['f_amountcash'] ?? 0) > 0
+      || (o['f_amountcard'] ??0) > 0
+      || (o['f_amountidram'] ?? 0) > 0;
+  }
 
   @override
   State<StatefulWidget> createState() => _ProcessScreenWidgetState();
@@ -97,13 +122,13 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
                         Text('${i['f_part2name']} ${i['f_dishname']}')
                       ],
                     ),
-                    Row(
-                      children: [
-                        Text(widget.model.tr('End time')),
-                        Expanded(child: Container()),
-                        Text(dateTimeToTimeStr(widget.o['f_done']))
-                      ],
-                    ),
+                    // Row(
+                    //   children: [
+                    //     Text(widget.model.tr('End time')),
+                    //     Expanded(child: Container()),
+                    //     Text(dateTimeToTimeStr(widget.o['f_done']))
+                    //   ],
+                    // ),
                     const SizedBox(height: 10),
                     if (widget.o['f_state'] == 1)
                       Row(
@@ -128,7 +153,7 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
           )),
       const SizedBox(height: 10),
       Row(children: [
-        Expanded(child: Payment(widget.o, widget.model)),
+        Expanded(child: Payment(widget.o, widget.model, readyonly: widget.readonly,)),
       ]),
       const SizedBox(height: 10),
       Row(

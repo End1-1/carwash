@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/app/screen.dart';
-import 'package:carwash/screens/process_start.dart';
 import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/prefs.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +20,21 @@ class ProcessScreen extends AppScreen {
         ),
         backgroundColor: Colors.green,
         toolbarHeight: kToolbarHeight,
-        title: Text(prefs.appTitle()));
+        title: Text(prefs.appTitle()),
+      actions: [
+        Container(
+            margin: const EdgeInsets.all(10),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+                color: Color(0xff004779),
+                border: Border.fromBorderSide(BorderSide(color: Colors.white)),
+                borderRadius: BorderRadius.all(Radius.circular(50))
+            ),
+            child: Text(prefs.string('table'),
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+      ],
+    );
   }
 
   @override
@@ -118,7 +131,7 @@ class _BodyState extends State<_Body> {
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     for (final o in snapshot.data ?? []) ...[
-                                      if (o['f_state'] == 1 || o['f_state'] == 2) ...[
+                                      if (o['progress'] > 1) ...[
                                         processWidget(o),
                                         const Divider(
                                             color: Colors.white,
@@ -132,7 +145,7 @@ class _BodyState extends State<_Body> {
                               color: Colors.orange,
                               child: Column(children: [
                                 for (final o in snapshot.data ?? []) ...[
-                                  if (o['f_state'] ==5) ...[
+                                  if (o['progress'] == 1) ...[
                                     pendingWidget(o),
                                     const Divider(
                                         color: Colors.white,
@@ -155,10 +168,21 @@ class _BodyState extends State<_Body> {
             padding: const EdgeInsets.all(5),
             margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
             decoration: BoxDecoration(color: o['f_state'] == 1 ? const Color(0xff94a5ba) : const Color(0xffaaeeaa)),
-            child: Column(
+            child:
+              Column(
               children: [
                 Row(
                   children: [
+                    if (o['progress'] == 2)
+                      Image.asset('assets/icons/shower.png', height: 40,),
+                    if (o['progress'] == 3)
+                      Image.asset('assets/icons/fan.png', height: 40,),
+                    if (o['progress'] == 4)...[
+                      if (DateTime.now().difference(strToDateTime(o['f_washdate'])).inMinutes <= 120)
+                        Image.asset('assets/icons/timer.png', height: 40),
+                      if (DateTime.now().difference(strToDateTime(o['f_washdate'])).inMinutes > 120)
+                        Image.asset('assets/icons/parking.png', height: 40),
+                    ],
                     Text(
                       o['f_tablename'],
                       style: const TextStyle(
@@ -183,19 +207,14 @@ class _BodyState extends State<_Body> {
                     for (final i in o['f_items'] ?? []) ...[
                       Row(
                         children: [
-                          Text('${i['f_part2name']} ${i['f_dishname']}',
+                          Text('${i['f_part1name']} ${i['f_dishname']}',
                               style: const TextStyle(color: Colors.black)),
                           Expanded(child: Container()),
                           const Icon(Icons.access_time_rounded),
                           SizedBox(
                               width: 100,
                               child: Text(
-                                  '${processDuration(i['f_begin'], i['f_cookingtime'], widget.model.tr('hour'), widget.model.tr('min'))}',
-                                  textAlign: TextAlign.right,
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black)))
+                                  "S"))
                         ],
                       ),
                       Row(children: [
@@ -203,7 +222,7 @@ class _BodyState extends State<_Body> {
                         const Icon(Icons.access_alarm_rounded),
     SizedBox(
     width: 100,
-    child:Text('${dateTimeToTimeStr(o['f_done'])}', textAlign: TextAlign.right,
+    child:Text('${DateTime.now().difference(strToDateTime(o['f_washdate'])).inMinutes}', textAlign: TextAlign.right,
         style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -219,7 +238,7 @@ class _BodyState extends State<_Body> {
   Widget pendingWidget(Map<String, dynamic> o) {
     return InkWell(
         onTap: () {
-          ProcessStartScreen.show(o, widget.model);
+
         },
         child: Container(
             padding: const EdgeInsets.all(5),

@@ -1,10 +1,7 @@
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/widgets/dish_basket.dart';
-import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/prefs.dart';
 import 'package:flutter/material.dart';
-
-import 'dish_qty.dart';
 
 class DishDialog {
 

@@ -6,8 +6,9 @@ import 'package:flutter/material.dart';
 class Payment extends StatefulWidget {
   final Map<String, dynamic> o;
   final AppModel model;
+  final bool readyonly;
 
-  const Payment(this.o, this.model, {super.key});
+  const Payment(this.o, this.model, {super.key, this.readyonly = false});
 
   @override
   State<StatefulWidget> createState() => _Payment();
@@ -17,7 +18,7 @@ class _Payment extends State<Payment> {
   final moneyController = TextEditingController();
 
   static ButtonStyle s1 = OutlinedButton.styleFrom(
-    padding: EdgeInsets.zero,
+      padding: EdgeInsets.zero,
       alignment: Alignment.center,
       backgroundColor: Colors.black26,
       shape: const RoundedRectangleBorder(
@@ -37,7 +38,7 @@ class _Payment extends State<Payment> {
 
   @override
   Widget build(BuildContext context) {
-    moneyController.text = '${widget.o['f_amounttotal']}';
+    moneyController.text = '${widget.o['f_amounttotal'] ?? 0}';
     return Column(children: [
       const SizedBox(height: 10),
       Row(children: [
@@ -45,7 +46,8 @@ class _Payment extends State<Payment> {
             child: MTextFormField(
                 controller: moneyController,
                 hintText: widget.model.tr('Amount'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 readOnly: true))
       ]),
       const SizedBox(height: 10),
@@ -56,6 +58,9 @@ class _Payment extends State<Payment> {
               Expanded(
                   child: OutlinedButton(
                       onPressed: () {
+                        if (widget.readyonly) {
+                          return;
+                        }
                         widget.o['f_amountcash'] = 0;
                         widget.o['f_amountcard'] = 0;
                         widget.o['f_amountidram'] = 0;
@@ -72,6 +77,9 @@ class _Payment extends State<Payment> {
               Expanded(
                   child: OutlinedButton(
                       onPressed: () {
+                        if (widget.readyonly) {
+                          return;
+                        }
                         widget.o['f_amountcash'] = 0;
                         widget.o['f_amountcard'] = 0;
                         widget.o['f_amountidram'] = 0;
@@ -88,6 +96,9 @@ class _Payment extends State<Payment> {
               Expanded(
                   child: OutlinedButton(
                       onPressed: () {
+                        if (widget.readyonly) {
+                          return;
+                        }
                         widget.o['f_amountcash'] = 0;
                         widget.o['f_amountcard'] = 0;
                         widget.o['f_amountidram'] = 0;
@@ -104,6 +115,9 @@ class _Payment extends State<Payment> {
               Expanded(
                   child: OutlinedButton(
                       onPressed: () {
+                        if (widget.readyonly) {
+                          return;
+                        }
                         widget.o['f_amountcash'] = 0;
                         widget.o['f_amountcard'] = 0;
                         widget.o['f_amountidram'] = 0;
@@ -115,10 +129,11 @@ class _Payment extends State<Payment> {
                           ? s2
                           : s1,
                       child: Text(widget.model.tr('Not now'),
-                          style:
-                          (widget.o['f_amountidram'] ?? 0) == 0 &&
-                              (widget.o['f_amountcash'] ?? 0) == 0 &&
-                              (widget.o['f_amountcard'] ?? 0) == 0 ? t2 : t1))),
+                          style: (widget.o['f_amountidram'] ?? 0) == 0 &&
+                                  (widget.o['f_amountcash'] ?? 0) == 0 &&
+                                  (widget.o['f_amountcard'] ?? 0) == 0
+                              ? t2
+                              : t1))),
             ],
           ))
     ]);

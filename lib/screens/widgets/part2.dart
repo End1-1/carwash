@@ -15,12 +15,12 @@ class Part2 extends StatelessWidget {
           model.appdata.filterDishes(data['f_id']);
         },
         child: Container(
-          margin: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          margin: const EdgeInsets.fromLTRB(10, 5, 10, 5),
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
           width: 200,
           height: 200 + 120 ,
           decoration: const BoxDecoration(
-              color: Colors.blueAccent,
+              color: Color(0xff004779),
               border: Border.fromBorderSide(
                   BorderSide(color: Colors.white10, width: 2)),
               borderRadius: BorderRadius.all(Radius.circular(4))),
@@ -33,7 +33,7 @@ class Part2 extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(color: Colors.white,
                 borderRadius: BorderRadius.all(Radius.circular(4))),
-                height: 200,
+                height: 190,
                 width: 200,
                 child: data['f_image'].isEmpty
                     ? FittedBox(child: Icon(Icons.not_interested_outlined,

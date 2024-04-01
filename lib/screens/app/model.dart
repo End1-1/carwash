@@ -29,6 +29,8 @@ class AppModel {
   static const query_update_duration = 6;
   static const query_reassign_table = 7;
   static const query_payment = 8;
+  static const query_print_bill = 9;
+  static const query_print_fiscal = 10;
 
   final titleController = TextEditingController();
   final settingsServerAddressController = TextEditingController();
@@ -44,11 +46,13 @@ class AppModel {
   final basketController = StreamController.broadcast();
   final dishesController = StreamController.broadcast();
   final dialogController = StreamController();
+  final fiscalController = StreamController.broadcast();
 
   late final Data appdata;
 
   Size? screenSize;
   var screenMultiple = 0.43;
+  var printFiscal = true;
 
   AppModel() {
     appdata = Data(this);
@@ -74,7 +78,7 @@ class AppModel {
 
   Future<String> initModel() async {
     dialogController.add(1);
-    final queryResult = await HttpQuery().request({
+    final queryResult = await HttpQuery(HttpQuery.networkdb).request({
       'sql': "select sf_vip_init('${jsonEncode({
             'f_menu': int.tryParse(prefs.string('menucode')) ?? 0
           })}')",
@@ -93,7 +97,7 @@ class AppModel {
   String tr(String key) {
     if (!appdata.translation.containsKey(key)) {
       appdata.translation[key] = {'f_en': key, 'f_am': key, 'f_ru': key};
-      HttpQuery().request({
+      HttpQuery(HttpQuery.networkdb).request({
         'query': query_call_function,
         'function': 'sf_unknown_tr',
         'params': <String, dynamic>{'f_en': key}
@@ -116,7 +120,7 @@ class AppModel {
     Navigator.pushAndRemoveUntil(
         Prefs.navigatorKey.currentContext!,
         MaterialPageRoute(builder: (builder) => ScreenHelp(this)),
-            (r) => false);
+        (r) => false);
   }
 
   void navSettings() {
@@ -143,11 +147,11 @@ class AppModel {
   }
 
   void sendMessage() async {
-    final queryResult = await HttpQuery().request({
+    final queryResult = await HttpQuery(HttpQuery.networkdb).request({
       'sql': "select sf_create_message('${jsonEncode({
-        'f_message': messageController.text,
-        'f_table': prefs.string('table')
-      })}')",
+            'f_message': messageController.text,
+            'f_table': prefs.string('table')
+          })}')",
     });
     if (queryResult['status'] == 1) {
       messageController.clear();
@@ -207,10 +211,15 @@ class AppModel {
   void addToBasket(Map<String, dynamic> data) {
     data['f_uuid'] = const Uuid().v1().toString();
     appdata.basket.add(data);
+    appdata.basketTotal();
     basketController.add(appdata.basket.length);
   }
 
   void processOrder() {
+    if (carNumberController.text.isEmpty) {
+      Dialogs.show('Նշեք մեքենայի պետհամարանիշը');
+      return;
+    }
     List<Map<String, dynamic>> m = [];
     for (var e in appdata.basket) {
       final a = <String, dynamic>{};
@@ -230,12 +239,15 @@ class AppModel {
   }
 
   void getProcessList() async {
-    final queryResult = await HttpQuery().request({
+    final queryResult = await HttpQuery(HttpQuery.networkdb).request({
       'query': query_call_function,
-      'sql': "select sf_get_process_list('${jsonEncode({'f_menu': int.tryParse(prefs.string('menucode')) ?? 0})}')"
+      'sql': "select sf_get_process_list('${jsonEncode({
+            'f_menu': int.tryParse(prefs.string('menucode')) ?? 0
+          })}')"
     });
     if (queryResult['status'] == 1) {
-      httpOk(query_get_process_list, jsonDecode(queryResult['data']['data'][0][0])['data']);
+      httpOk(query_get_process_list,
+          jsonDecode(queryResult['data']['data'][0][0])['data']);
     } else {}
   }
 
@@ -290,9 +302,33 @@ class AppModel {
           appdata.translation[e['f_en']] = e;
         }
         break;
-      case query_create_order:
+      case query_print_fiscal:
         appdata.basket.clear();
         carNumberController.clear();
+        appdata.basketTotal();
+        if (prefs.string('afterbaskettoorders') == '1') {
+          navProcess();
+        } else {
+          navHome();
+        }
+        Dialogs.show(tr('Your order was created'));
+        break;
+      case query_create_order:
+        if ((appdata.basketData['f_amountcash'] ?? 0) > 0 ||
+            (appdata.basketData['f_amountcard'] ?? 0) > 0 ||
+            (appdata.basketData['f_amountidram'] ?? 0) > 0) {
+          httpQuery(
+              query_print_fiscal,
+              {
+                'id': jsonDecode(data["data"][0][0])["data"],
+                'mode': printFiscal ? 1 : 0
+              },
+              route: HttpQuery.printfiscal);
+          return;
+        }
+        appdata.basket.clear();
+        carNumberController.clear();
+        appdata.basketTotal();
         if (prefs.string('afterbaskettoorders') == '1') {
           navProcess();
         } else {
@@ -333,7 +369,8 @@ class AppModel {
     }
   }
 
-  Future<void> httpQuery(int code, Map<String, dynamic> params) async {
+  Future<void> httpQuery(int code, Map<String, dynamic> params,
+      {String route = HttpQuery.networkdb}) async {
     dialogController.add(0);
     Map<String, dynamic> copy = {};
     copy.addAll(params);
@@ -341,12 +378,17 @@ class AppModel {
       copy['params'] = <String, dynamic>{};
     }
     correctJson(copy['params']);
-    final queryResult = await HttpQuery().request(copy);
+    final queryResult = await HttpQuery(route).request(copy);
     Navigator.pop(Loading.dialogContext);
     if (queryResult['status'] == 1) {
       httpOk(code, queryResult['data']);
     } else {
       dialogController.add(queryResult['data']);
     }
+  }
+
+  void changeFiscalMode() {
+    printFiscal = !printFiscal;
+    fiscalController.add(null);
   }
 }

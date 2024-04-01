@@ -5,6 +5,12 @@ import 'package:http/http.dart' as http;
 
 
 class HttpQuery {
+  static const String networkdb = 'networkdb';
+  static const String printfiscal = 'printfiscal';
+
+  final String route;
+  HttpQuery(this.route);
+
   Future<Map<String, dynamic>> request(Map<String, dynamic> inData) async {
     if (inData['params'] == null) {
       inData['params'] = <String, dynamic>{};
@@ -21,7 +27,7 @@ class HttpQuery {
     try {
       var response = await http
           .post(
-              Uri.https('${prefs.string("serveraddress")}:10002', 'networkdb'),
+              Uri.https('${prefs.string("serveraddress")}:10002', route),
               headers: {
                 'Content-Type': 'application/json',
                 //'Content-Length': '${utf8.encode(strBody).length}'

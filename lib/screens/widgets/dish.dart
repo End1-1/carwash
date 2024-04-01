@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 class Dish extends StatelessWidget {
   final _width = 190.0;
-  final _height = 190.0 + 120.0;
+  final _height = 200.0 + 120.0;
   final Map<String, dynamic> data;
   final AppModel model;
 
@@ -18,12 +18,12 @@ class Dish extends StatelessWidget {
       DishDialog.show(data, model);
     },
     child: Container(
-      margin: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+      margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       width: _width,
       height: _height ,
       decoration: const BoxDecoration(
-          color: Colors.blueAccent,
+          color: Color(0xff007930),
           border: Border.fromBorderSide(BorderSide(color: Colors.white10)),
           borderRadius: BorderRadius.all(Radius.circular(4))),
       child: Column(
