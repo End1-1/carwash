@@ -71,8 +71,10 @@ class _BodyState extends State<_Body> {
           pending = 0;
           inProgress = 0;
           for (final o in snapshot.data) {
-            if (o['f_state'] == 1) {
-              inProgress++;
+            if (o['progress'] > 1) {
+              if (o['progress'] < 4) {
+                inProgress++;
+              }
             } else {
               pending++;
             }
