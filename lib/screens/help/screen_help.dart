@@ -75,13 +75,7 @@ class ScreenHelp extends AppScreen {
         )),
        // Expanded(child: Container()),
         const SizedBox(height: 20,),
-        Container(
-            //padding: EdgeInsets.only(bottom: MediaQuery.of(Prefs.navigatorKey.currentContext!).viewInsets.bottom),
-            height: kButtonHeight,
-            alignment: Alignment.center,
-            child: globalOutlinedButton(
-                onPressed: model.sendMessage,
-                title: model.tr('Ուղարկել'))),
+
       ],
     );
   }

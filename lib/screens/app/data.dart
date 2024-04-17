@@ -1,11 +1,11 @@
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/utils/global.dart';
-import 'package:carwash/widgets/dialogs.dart';
 
 class Data {
   final AppModel model;
 
   Data(this.model);
+
   //menu
   int part1filter = 0;
   int part2filter = 0;
@@ -16,13 +16,23 @@ class Data {
   // basket
   final List<Map<String, dynamic>> basket = [];
   final Map<String, dynamic> basketData = {};
+
   double basketTotal() {
     var total = 0.0;
-      for (final i in basket) {
-        total += i['f_qty'] * i['f_price'];
-      }
+    for (final i in basket) {
+      total += i['f_qty'] * i['f_price'];
+    }
 
     basketData['f_amounttotal'] = total;
+    if (basketData['f_amountcash'] > 0 && basketData['f_amountcash'] != basketData['f_amounttotal']) {
+      basketData['f_amountcash'] = basketData['f_amounttotal'];
+    }
+    if (basketData['f_amountidram'] > 0 && basketData['f_amountidram'] != basketData['f_amounttotal']) {
+      basketData['f_amountidram'] = basketData['f_amounttotal'];
+    }
+    if (basketData['f_amountcard'] > 0 && basketData['f_amountcard'] != basketData['f_amounttotal']) {
+      basketData['f_amountcard'] = basketData['f_amounttotal'];
+    }
     return total;
   }
 
@@ -72,7 +82,8 @@ class Data {
   }
 
   void setItemQty(Map<String, dynamic> data) {
-    int index = basket.indexWhere((element) => element['f_uuid'] == data['f_uuid']);
+    int index =
+        basket.indexWhere((element) => element['f_uuid'] == data['f_uuid']);
     if (index < 0) {
       return;
     }
@@ -82,24 +93,23 @@ class Data {
   }
 
   void removeBasketItem(Map<String, dynamic> data) {
-    int index = basket.indexWhere((element) => element['f_uuid'] == data['f_uuid']);
+    int index =
+        basket.indexWhere((element) => element['f_uuid'] == data['f_uuid']);
     basket.removeAt(index);
     basketTotal();
     model.basketController.add(basket.length);
   }
 
   void countWorksStartEnd() {
-    final last = <int,  DateTime>{
-      1: DateTime.now(),
-      2: DateTime.now()
-    } ;
+    final last = <int, DateTime>{1: DateTime.now(), 2: DateTime.now()};
 
     for (final e in works) {
       if (e['progress'] == 1) {
         continue;
       }
       if (e['progress'] > 1 && e['progress'] < 4) {
-        last[e['f_table']] = strToDateTime(e['f_washdate']).add(Duration(minutes: 60));
+        last[e['f_table']] =
+            strToDateTime(e['f_washdate']).add(Duration(minutes: 60));
         e['f_begin'] = strToDateTime(e['f_washdate']);
         e['f_done'] = last[e['f_table']];
       }

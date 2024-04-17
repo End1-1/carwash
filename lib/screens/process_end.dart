@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:ffi';
-
 import 'package:carwash/screens/widgets/payment.dart';
 import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/http_query.dart';
@@ -27,13 +24,20 @@ class ProcessEndScreen {
           );
         }).then((value) async {
       if (value ?? false) {
-        if (o['f_state'] == 1) {
-          await model.httpQuery(AppModel.query_end_order, {
-            'query': AppModel.query_call_function,
-            'sql': "select sf_end_order('${jsonEncode(o)}')"
-          });
-          if (o['f_print'] == 0) {
-            await model.httpQuery(AppModel.query_print_fiscal, {"id": o['f_id']}, route: HttpQuery.printfiscal);
+        if (o['f_state'] == 1 || o['f_state'] == 5) {
+          await model.httpQuery(
+              AppModel.query_end_order,
+              {
+                'f_amountcash': o['f_amountcash'],
+                'f_amountcard': o['f_amountcard'],
+                'f_amountidram': o['f_amountidram'],
+                'f_id': o['f_id']
+              },
+              'engine/carwash/end-order.php');
+          if ((o['f_print'] ?? 0) == 0) {
+            await model.httpQuery2(AppModel.query_print_fiscal,
+                {"id": o['f_id'], 'mode': model.printFiscal ? 1 : 0},
+                route: HttpQuery2.printfiscal);
             // await model.httpQuery(AppModel.query_payment, {
             //   'query': AppModel.query_payment,
             //   'params': o
@@ -45,13 +49,19 @@ class ProcessEndScreen {
               o[key] = dateTimeToStr(value);
             }
           });
-          await model.httpQuery(AppModel.query_payment, {
-            'query': AppModel.query_call_function,
-            'sql': "select sf_end_order('${jsonEncode(o)}')",
-            'params': o
-          });
-          if (o['f_print'] == 0) {
-            await model.httpQuery(AppModel.query_print_fiscal, {"id": o['f_id']}, route: HttpQuery.printfiscal);
+          await model.httpQuery(
+              AppModel.query_end_order,
+              {
+                'f_amountcash': o['f_amountcash'],
+                'f_amountcard': o['f_amountcard'],
+                'f_amountidram': o['f_amountidram'],
+                'f_id': o['f_id']
+              },
+              'engine/carwash/end-order.php');
+          if ((o['f_print'] ?? 0) == 0) {
+            await model.httpQuery2(AppModel.query_print_fiscal,
+                {"id": o['f_id'], 'mode': model.printFiscal ? 1 : 0},
+                route: HttpQuery2.printfiscal);
             // await model.httpQuery(AppModel.query_payment, {
             //   'query': AppModel.query_payment,
             //   'params': o
@@ -72,9 +82,9 @@ class _ProcessScreenWidget extends StatefulWidget {
   bool readonly = false;
 
   _ProcessScreenWidget(this.o, this.model) {
-    readonly = (o['f_amountcash'] ?? 0) > 0
-      || (o['f_amountcard'] ??0) > 0
-      || (o['f_amountidram'] ?? 0) > 0;
+    readonly = (o['f_amountcash'] ?? 0) > 0 ||
+        (o['f_amountcard'] ?? 0) > 0 ||
+        (o['f_amountidram'] ?? 0) > 0;
   }
 
   @override
@@ -141,7 +151,7 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
                           IconButton(
                               onPressed: () {
                                 widget.o['duration'] = durationController.text;
-                                widget.model.updateDuration(widget.o);
+                                //widget.model.updateDuration(widget.o);
                               },
                               icon: const Icon(Icons.save_outlined))
                         ],
@@ -153,7 +163,12 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
           )),
       const SizedBox(height: 10),
       Row(children: [
-        Expanded(child: Payment(widget.o, widget.model, readyonly: widget.readonly,)),
+        Expanded(
+            child: Payment(
+          widget.o,
+          widget.model,
+          readyonly: widget.readonly,
+        )),
       ]),
       const SizedBox(height: 10),
       Row(

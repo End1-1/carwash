@@ -22,6 +22,12 @@ class ProcessScreen extends AppScreen {
         toolbarHeight: kToolbarHeight,
         title: Text(prefs.appTitle()),
       actions: [
+        StreamBuilder(stream: model.fiscalController.stream, builder: (builder, snapshot) {
+          return Container(padding: const EdgeInsets.all(10), child: InkWell(
+            onTap: model.changeFiscalMode,
+            child: Image.asset(model.printFiscal ? 'assets/icons/basketball.png' : 'assets/icons/football.png'),
+          ));
+        }),
         Container(
             margin: const EdgeInsets.all(10),
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
@@ -164,12 +170,22 @@ class _BodyState extends State<_Body> {
   Widget processWidget(Map<String, dynamic> o) {
     return InkWell(
         onTap: () {
-          widget.model.endOrder(o);
+          if (o["progress"] == 2 || o["progress"] == 3) {
+             widget.model.changeState(o);
+          } else {
+            if (o['f_amountcash'] == 0
+              && o['f_amountcard'] == 0
+            && o['f_amountidram'] == 0) {
+              widget.model.endOrder(o);
+            }
+          }
         },
         child: Container(
             padding: const EdgeInsets.all(5),
             margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-            decoration: BoxDecoration(color: o['f_state'] == 1 ? const Color(0xff94a5ba) : const Color(0xffaaeeaa)),
+            decoration: BoxDecoration(color: o['f_state'] == 1 ?
+            const Color(0xff94a5ba) :
+            const Color(0xffaaeeaa)),
             child:
               Column(
               children: [
@@ -185,6 +201,7 @@ class _BodyState extends State<_Body> {
                       if (DateTime.now().difference(strToDateTime(o['f_washdate'])).inMinutes > 120)
                         Image.asset('assets/icons/parking.png', height: 40),
                     ],
+
                     Text(
                       o['f_tablename'],
                       style: const TextStyle(
@@ -209,6 +226,11 @@ class _BodyState extends State<_Body> {
                     for (final i in o['f_items'] ?? []) ...[
                       Row(
                         children: [
+                          if (o['f_amountcash'] > 0
+                              || o['f_amountcard'] > 0
+                              || o['f_amountidram'] > 0) ...[
+                            Icon(Icons.paid_outlined)
+                          ],
                           Text('${i['f_part1name']} ${i['f_dishname']}',
                               style: const TextStyle(color: Colors.black)),
                           Expanded(child: Container()),
@@ -240,7 +262,9 @@ class _BodyState extends State<_Body> {
   Widget pendingWidget(Map<String, dynamic> o) {
     return InkWell(
         onTap: () {
-
+          if (o["progress"] == 1 ) {
+            widget.model.changeState(o);
+          }
         },
         child: Container(
             padding: const EdgeInsets.all(5),
@@ -276,6 +300,11 @@ class _BodyState extends State<_Body> {
                     for (final i in o['f_items'] ?? []) ...[
                       Row(
                         children: [
+                          if (o['f_amountcash'] > 0
+                          || o['f_amountcard'] > 0
+                          || o['f_amountidram'] > 0) ...[
+                            Icon(Icons.paid_outlined)
+                          ],
                           Text('${i['f_part2name']} ${i['f_dishname']}'),
                           Expanded(child: Container()),
                           const Icon(Icons.access_alarm_rounded),

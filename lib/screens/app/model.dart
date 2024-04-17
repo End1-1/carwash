@@ -9,9 +9,11 @@ import 'package:carwash/screens/process.dart';
 import 'package:carwash/screens/process_end.dart';
 import 'package:carwash/screens/settings.dart';
 import 'package:carwash/screens/welcome.dart';
+import 'package:carwash/screens/widgets/states.dart';
 import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/http_query.dart';
 import 'package:carwash/utils/prefs.dart';
+import 'package:carwash/utils/web_query.dart';
 import 'package:carwash/widgets/dialogs.dart';
 import 'package:carwash/widgets/loading.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +36,7 @@ class AppModel {
 
   final titleController = TextEditingController();
   final settingsServerAddressController = TextEditingController();
+  final settingsWebServerAddressController = TextEditingController();
   final configController = TextEditingController();
   final menuCodeController = TextEditingController();
   final modeController = TextEditingController();
@@ -78,14 +81,12 @@ class AppModel {
 
   Future<String> initModel() async {
     dialogController.add(1);
-    final queryResult = await HttpQuery(HttpQuery.networkdb).request({
-      'sql': "select sf_vip_init('${jsonEncode({
-            'f_menu': int.tryParse(prefs.string('menucode')) ?? 0
-          })}')",
+    final queryResult = await WebHttpQuery('/engine/carwash/init-data.php').request({
+      'f_menu' : int.tryParse(prefs.string('menucode')) ?? 0
     });
     Navigator.pop(Loading.dialogContext);
     if (queryResult['status'] == 1) {
-      String s = queryResult['data']['data'][0][0];
+      String s = queryResult['data'][0];
       httpOk(query_init, jsonDecode(s));
       return '';
     } else {
@@ -97,10 +98,8 @@ class AppModel {
   String tr(String key) {
     if (!appdata.translation.containsKey(key)) {
       appdata.translation[key] = {'f_en': key, 'f_am': key, 'f_ru': key};
-      HttpQuery(HttpQuery.networkdb).request({
-        'query': query_call_function,
-        'function': 'sf_unknown_tr',
-        'params': <String, dynamic>{'f_en': key}
+      WebHttpQuery('/engine/carwash/unknown-tr.php').request({
+        'f_en': key
       });
     }
     if (appdata.translation[key]!['f_am'].isEmpty) {
@@ -127,6 +126,7 @@ class AppModel {
     Dialogs.getPin().then((value) {
       if ((value ?? '') == '1981') {
         settingsServerAddressController.text = prefs.string('serveraddress');
+        settingsWebServerAddressController.text = prefs.string('webserveraddress');
         menuCodeController.text = prefs.string('menucode');
         modeController.text = prefs.string('appmode');
         showUnpaidController.text = prefs.string('showunpaid');
@@ -146,24 +146,9 @@ class AppModel {
         MaterialPageRoute(builder: (builder) => ProcessScreen(this)));
   }
 
-  void sendMessage() async {
-    final queryResult = await HttpQuery(HttpQuery.networkdb).request({
-      'sql': "select sf_create_message('${jsonEncode({
-            'f_message': messageController.text,
-            'f_table': prefs.string('table')
-          })}')",
-    });
-    if (queryResult['status'] == 1) {
-      messageController.clear();
-      navHome();
-      Dialogs.show('Ձեր հաղորդագրությունը ուղարկվել է');
-    } else {
-      Dialogs.show(queryResult['data']);
-    }
-  }
-
   void saveSettings() {
     prefs.setString('serveraddress', settingsServerAddressController.text);
+    prefs.setString('webserveraddress', settingsWebServerAddressController.text);
     prefs.setString('menucode', menuCodeController.text);
     prefs.setString('appmode', modeController.text);
     prefs.setString('showunpaid', showUnpaidController.text);
@@ -204,6 +189,18 @@ class AppModel {
         MaterialPageRoute(builder: (builder) => BasketScreen(this)));
   }
 
+  Future<void> removeOrder(Map<String, dynamic> data) async {
+    WebHttpQuery('/engine/carwash/remove-order.php').request(data).then((value) {
+      getProcessList();
+    });
+  }
+
+  Future<void> changeStateOfProcess(Map<String,dynamic> data) async {
+    WebHttpQuery('/engine/carwash/status.php').request(data).then((value) {
+      getProcessList();
+    });
+  }
+
   void callStaff() {
     navHelp();
   }
@@ -227,35 +224,35 @@ class AppModel {
       a.remove('f_image');
       m.add(a);
     }
-    httpQuery(query_create_order, {
-      'sql': "select sf_create_order('${jsonEncode({
+    httpQuery(query_create_order,
+      {
             'order': appdata.basketData,
             'items': m,
             'f_staff': 1,
             'f_table': int.tryParse(prefs.string('table')) ?? 1,
             'car_number': carNumberController.text
-          })}')",
-    });
+
+    }, '/engine/carwash/create-order.php');
   }
 
   void getProcessList() async {
-    final queryResult = await HttpQuery(HttpQuery.networkdb).request({
-      'query': query_call_function,
-      'sql': "select sf_get_process_list('${jsonEncode({
+    final queryResult = await WebHttpQuery('/engine/carwash/get-process-list.php').request({
             'f_menu': int.tryParse(prefs.string('menucode')) ?? 0
-          })}')"
+
     });
     if (queryResult['status'] == 1) {
       httpOk(query_get_process_list,
-          jsonDecode(queryResult['data']['data'][0][0])['data']);
+          jsonDecode(queryResult['data'][0])['data']);
     } else {}
   }
 
   void startOrder(Map<String, dynamic> o) {
-    httpQuery(query_start_order, {
-      'query': query_call_function,
-      'function': 'sf_start_order',
-      'params': o
+    httpQuery(query_start_order,o, '/engine/carwash/start-order.php');
+  }
+
+  void changeState(Map<String, dynamic> o) async {
+    ProcessStates.show(o, this).then((value) {
+
     });
   }
 
@@ -264,14 +261,6 @@ class AppModel {
       if (value ?? false) {
         getProcessList();
       }
-    });
-  }
-
-  void updateDuration(Map<String, dynamic> o) {
-    httpQuery(query_update_duration, {
-      'query': query_call_function,
-      'function': 'sf_update_duration',
-      'params': o
     });
   }
 
@@ -317,13 +306,13 @@ class AppModel {
         if ((appdata.basketData['f_amountcash'] ?? 0) > 0 ||
             (appdata.basketData['f_amountcard'] ?? 0) > 0 ||
             (appdata.basketData['f_amountidram'] ?? 0) > 0) {
-          httpQuery(
+          httpQuery2(
               query_print_fiscal,
               {
-                'id': jsonDecode(data["data"][0][0])["data"],
+                'id': jsonDecode(data)["data"],
                 'mode': printFiscal ? 1 : 0
               },
-              route: HttpQuery.printfiscal);
+              route: HttpQuery2.printfiscal);
           return;
         }
         appdata.basket.clear();
@@ -369,8 +358,20 @@ class AppModel {
     }
   }
 
-  Future<void> httpQuery(int code, Map<String, dynamic> params,
-      {String route = HttpQuery.networkdb}) async {
+  Future<void> httpQuery(int code, Map<String, dynamic> params, String route) async {
+    dialogController.add(0);
+    correctJson(params);
+    final queryResult = await WebHttpQuery(route).request(params);
+    Navigator.pop(Loading.dialogContext);
+    if (queryResult['status'] == 1) {
+      httpOk(code, queryResult['data']);
+    } else {
+      dialogController.add(queryResult['data']);
+    }
+  }
+
+  Future<void> httpQuery2(int code, Map<String, dynamic> params,
+      {String route = HttpQuery2.networkdb}) async {
     dialogController.add(0);
     Map<String, dynamic> copy = {};
     copy.addAll(params);
@@ -378,7 +379,7 @@ class AppModel {
       copy['params'] = <String, dynamic>{};
     }
     correctJson(copy['params']);
-    final queryResult = await HttpQuery(route).request(copy);
+    final queryResult = await HttpQuery2(route).request(copy);
     Navigator.pop(Loading.dialogContext);
     if (queryResult['status'] == 1) {
       httpOk(code, queryResult['data']);

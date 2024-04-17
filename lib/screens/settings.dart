@@ -19,6 +19,10 @@ class SettingsScreen extends AppScreen {
     ]),
       const SizedBox(height: 10),
       Row(children:[
+        Expanded(child: MTextFormField(controller: model.settingsWebServerAddressController, hintText: model.tr('Web server')))
+      ]),
+      const SizedBox(height: 10),
+      Row(children:[
         Expanded(child: MTextFormField(controller: model.titleController, hintText: model.tr('Title')))
       ]),
       const SizedBox(height: 10),
