@@ -44,6 +44,14 @@ class _Payment extends State<Payment> {
       Row(children: [
         Expanded(
             child: MTextFormField(
+          controller: widget.model.carNumberController,
+          hintText: 'Պետհամարանիշ',
+                style:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)
+        )),
+        const SizedBox(width: 5),
+        Expanded(
+            child: MTextFormField(
                 controller: moneyController,
                 hintText: widget.model.tr('Amount'),
                 style:

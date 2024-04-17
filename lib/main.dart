@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/welcome.dart';
 import 'package:carwash/utils/http_overrides.dart';
@@ -7,6 +8,7 @@ import 'package:carwash/utils/prefs.dart';
 import 'package:carwash/utils/web_query.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,7 +27,12 @@ void main() async {
     prefs.setString('pkAppName', appName);
     prefs.setString('pkAppVersion', '$version.$buildNumber');
   });
-  runApp(const App());
+  runApp(
+    MultiBlocProvider(providers: [
+      BlocProvider<AppAnimateBloc>(create: (context) => AppAnimateBloc())
+
+    ], child: const App()));
+
 }
 
 class App extends StatefulWidget {

@@ -24,7 +24,7 @@ class _DishQtyState extends State<DishQty> {
                 setState(() {});
               }
             },
-            icon: const Icon(Icons.plus_one, color: Colors.white)),
+            icon: const Icon(Icons.plus_one, color: Colors.white, size: 30,)),
         Container(
             width: 30,
             height: 30,
@@ -49,8 +49,8 @@ class _DishQtyState extends State<DishQty> {
                 setState(() {});
               }
             },
-            icon: const Icon(Icons.exposure_minus_1, color: Colors.white)),
-        Expanded(child: Container()),
+            icon: const Icon(Icons.exposure_minus_1, color: Colors.white, size: 30,)),
+
       ],
     );
   }

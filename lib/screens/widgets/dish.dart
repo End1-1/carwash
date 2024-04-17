@@ -19,7 +19,7 @@ class Dish extends StatelessWidget {
     },
     child: Container(
       margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+      padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
       width: _width,
       height: _height ,
       decoration: const BoxDecoration(

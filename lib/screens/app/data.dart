@@ -24,13 +24,13 @@ class Data {
     }
 
     basketData['f_amounttotal'] = total;
-    if (basketData['f_amountcash'] > 0 && basketData['f_amountcash'] != basketData['f_amounttotal']) {
+    if ((basketData['f_amountcash'] ?? 0 )> 0 && (basketData['f_amountcash'] ?? 0) != basketData['f_amounttotal']) {
       basketData['f_amountcash'] = basketData['f_amounttotal'];
     }
-    if (basketData['f_amountidram'] > 0 && basketData['f_amountidram'] != basketData['f_amounttotal']) {
+    if ((basketData['f_amountidram'] ?? 0) > 0 && (basketData['f_amountidram'] ?? 0) != basketData['f_amounttotal']) {
       basketData['f_amountidram'] = basketData['f_amounttotal'];
     }
-    if (basketData['f_amountcard'] > 0 && basketData['f_amountcard'] != basketData['f_amounttotal']) {
+    if ((basketData['f_amountcard'] ?? 0) > 0 && (basketData['f_amountcard'] ?? 0) != basketData['f_amounttotal']) {
       basketData['f_amountcard'] = basketData['f_amounttotal'];
     }
     return total;

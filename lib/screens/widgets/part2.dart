@@ -15,8 +15,8 @@ class Part2 extends StatelessWidget {
           model.appdata.filterDishes(data['f_id']);
         },
         child: Container(
-          margin: const EdgeInsets.fromLTRB(10, 5, 10, 5),
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+          padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
           width: 200,
           height: 200 + 120 ,
           decoration: const BoxDecoration(

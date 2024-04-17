@@ -1,4 +1,5 @@
 import 'package:carwash/screens/app/model.dart';
+import 'package:carwash/screens/menu.dart';
 import 'package:flutter/material.dart';
 
 abstract class AppScreen extends StatelessWidget {
@@ -12,11 +13,15 @@ abstract class AppScreen extends StatelessWidget {
       appBar: appBar(),
       body: SafeArea(
         minimum: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-          child: body()),
+          child: Stack(children: [body(),
+            WMAppMenu(model, menuWidgets())
+          ])),
     );
   }
 
   PreferredSizeWidget appBar();
 
   Widget body();
+
+  List<Widget> menuWidgets() => [];
 }

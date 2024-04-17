@@ -12,6 +12,10 @@ extension Prefs on SharedPreferences {
   String appTitle() {
     return string('title');
   }
+
+  BuildContext context() {
+    return navigatorKey.currentContext!;
+  }
 }
 
 late SharedPreferences prefs;

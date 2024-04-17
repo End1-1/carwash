@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/basket.dart';
 import 'package:carwash/screens/car_number.dart';
 import 'package:carwash/screens/dishes.dart';
@@ -17,6 +18,7 @@ import 'package:carwash/utils/web_query.dart';
 import 'package:carwash/widgets/dialogs.dart';
 import 'package:carwash/widgets/loading.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
 import 'data.dart';
@@ -106,6 +108,10 @@ class AppModel {
       return key;
     }
     return appdata.translation[key]!['f_am']!;
+  }
+
+  void openMenu() {
+    BlocProvider.of<AppAnimateBloc>(prefs.context()).add(AppAnimateEventRaise());
   }
 
   void navHome() {

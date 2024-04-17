@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'dish_qty.dart';
 
 class DishBasket extends StatelessWidget {
-  final _width = 250.0;
+  final _width = 260.0;
   final _heigth = 190.0 + 120.0;
   final AppModel model;
   final Map<String, dynamic> data;
@@ -18,7 +18,7 @@ class DishBasket extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        margin: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+        margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
         padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
         color: Colors.indigo,
         width: _width,
@@ -80,7 +80,7 @@ class DishBasket extends StatelessWidget {
               runAlignment: WrapAlignment.center,
               children: [
             Container(
-              constraints: BoxConstraints(maxWidth: _width),
+              constraints: BoxConstraints(maxWidth: _width / 2),
                 child: DishQty( (q) {
                         data['f_qty'] = q;
                         model.appdata.setItemQty(data);
