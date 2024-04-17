@@ -4,6 +4,8 @@ import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/welcome.dart';
 import 'package:carwash/utils/http_overrides.dart';
 import 'package:carwash/utils/prefs.dart';
+import 'package:carwash/utils/web_query.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -60,10 +62,21 @@ class _App extends State<App> {
   }
 
   void initialization() async {
-    if (prefs.string("serveraddress").isEmpty) {
-      FlutterNativeSplash.remove();
-      return;
+    if (kIsWeb) {
+      prefs.setString("webserveraddress", Uri.base.host);
+      await WebHttpQuery('/config/').request({}).then((value) {
+        if (value['status'] == 1) {
+          prefs.setString("menucode", value["menu_id"].toString());
+          prefs.setString("serveraddress", value["serveraddress"]);
+        }
+      });
+    } else {
+      if (prefs.string("serveraddress").isEmpty) {
+        FlutterNativeSplash.remove();
+        return;
+      }
     }
+
     _appModel.initModel().then((value) {
       error = value;
       //FlutterNativeSplash.remove();
