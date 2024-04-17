@@ -300,9 +300,9 @@ class _BodyState extends State<_Body> {
                     for (final i in o['f_items'] ?? []) ...[
                       Row(
                         children: [
-                          if (o['f_amountcash'] > 0
-                          || o['f_amountcard'] > 0
-                          || o['f_amountidram'] > 0) ...[
+                          if ((o['f_amountcash'] ??0) > 0
+                          || (o['f_amountcard'] ?? 0) > 0
+                          || (o['f_amountidram'] ?? 0) > 0) ...[
                             Icon(Icons.paid_outlined)
                           ],
                           Text('${i['f_part2name']} ${i['f_dishname']}'),

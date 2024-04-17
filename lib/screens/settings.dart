@@ -64,7 +64,7 @@ class SettingsScreen extends AppScreen {
       ),
       backgroundColor: Colors.green,
       toolbarHeight: kToolbarHeight,
-      title: Text(prefs.appTitle()),
+      title: Text('${prefs.appTitle()} ${prefs.string('pkAppVersion')}'),
       actions: [
 
         IconButton(
