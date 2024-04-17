@@ -34,3 +34,4 @@ bin/
 build/
 .idea/
 .dart_tool/
+/.dart_tool/
