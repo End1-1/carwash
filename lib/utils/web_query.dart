@@ -8,7 +8,8 @@ import 'package:intl/intl.dart';
 class WebHttpQuery {
 
   final String route;
-  WebHttpQuery(this.route);
+  final int timeoutSeconds;
+  WebHttpQuery(this.route, {this.timeoutSeconds = 10});
 
   Future<Map<String, dynamic>> request(Map<String, dynamic> inData) async {
     inData.forEach((key, value) {
@@ -40,7 +41,7 @@ class WebHttpQuery {
             //     "Origin, X-Requested-With, Content-Type, Accept"
           },
           body: utf8.encode(strBody))
-          .timeout(const Duration(seconds: 120), onTimeout: () {
+          .timeout(Duration(seconds: timeoutSeconds), onTimeout: () {
         return http.Response('Timeout', 408);
       });
       String strResponse = utf8.decode(response.bodyBytes);

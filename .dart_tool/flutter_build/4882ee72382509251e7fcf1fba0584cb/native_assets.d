@@ -1,1 +1,0 @@
- C:\\projects\\carwash\\.dart_tool\\flutter_build\\4882ee72382509251e7fcf1fba0584cb\\native_assets.yaml: 

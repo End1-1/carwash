@@ -10,7 +10,7 @@ class SettingsScreen extends AppScreen {
 
   @override
   Widget body() {
-  return Column(
+  return SingleChildScrollView(child: Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const SizedBox(height: 10),
@@ -52,7 +52,7 @@ class SettingsScreen extends AppScreen {
         Expanded(child: MTextFormField(controller: model.afterBasketToOrdersController, hintText: model.tr('After basket navigate to orders')))
       ]),
     ],
-  );
+  ));
   }
 
   @override
