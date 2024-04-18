@@ -4,7 +4,11 @@ import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/app/screen.dart';
 import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/prefs.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+part "process.mobile.dart";
+part "process.desktop.dart";
 
 class ProcessScreen extends AppScreen {
   ProcessScreen(super.model, {super.key}) {
@@ -45,126 +49,33 @@ class ProcessScreen extends AppScreen {
 
   @override
   Widget body() {
-    return _Body(model);
+
+    return Body(model);
   }
 }
 
-class _Body extends StatefulWidget {
+class Body extends StatefulWidget {
   final AppModel model;
 
-  const _Body(this.model);
+  const Body(this.model);
 
   @override
   State<StatefulWidget> createState() => _BodyState();
 }
 
-class _BodyState extends State<_Body> {
+class _BodyState extends State<Body> {
   late Timer _timer;
   var pending = 0;
   var inProgress = 0;
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-        stream: widget.model.basketController.stream,
-        builder: (builder, snapshot) {
-          if (snapshot.data == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.data is int) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          pending = 0;
-          inProgress = 0;
-          for (final o in snapshot.data) {
-            if (o['progress'] > 1) {
-              if (o['progress'] < 4) {
-                inProgress++;
-              }
-            } else {
-              pending++;
-            }
-          }
-          return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Expanded(
-                      child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.blueAccent, Colors.blue])),
-                    child: Text(
-                      '${widget.model.tr('In progress')} $inProgress',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
-                    ),
-                  )),
-                  Expanded(
-                      child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.deepOrange, Colors.orange])),
-                    child: Text(
-                      '${widget.model.tr('Pending')} $pending',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
-                    ),
-                  ))
-                ]),
-                //ORDERS
-                Expanded(
-                    child: SingleChildScrollView(
-                        child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                      Expanded(
-                          child: Container(
-                              color: Colors.blue,
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.max,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    for (final o in snapshot.data ?? []) ...[
-                                      if (o['progress'] > 1) ...[
-                                        processWidget(o),
-                                        const Divider(
-                                            color: Colors.white,
-                                            height: 2,
-                                            thickness: 2)
-                                      ]
-                                    ],
-                                  ]))),
-                      Expanded(
-                          child: Container(
-                              color: Colors.orange,
-                              child: Column(children: [
-                                for (final o in snapshot.data ?? []) ...[
-                                  if (o['progress'] == 1) ...[
-                                    pendingWidget(o),
-                                    const Divider(
-                                        color: Colors.white,
-                                        height: 2,
-                                        thickness: 2)
-                                  ]
-                                ]
-                              ]))),
-                    ])))
-              ]);
-        });
+    if (widget.model.screenSize!.width < 500) {
+      return bodyMobile();
+    } else {
+      return bodyDesktop();
+    }
+
   }
 
   Widget processWidget(Map<String, dynamic> o) {
@@ -231,8 +142,9 @@ class _BodyState extends State<_Body> {
                               || (o['f_amountidram'] ?? 0) > 0) ...[
                             Icon(Icons.paid_outlined)
                           ],
-                          Text('${i['f_part1name']} ${i['f_dishname']}',
-                              style: const TextStyle(color: Colors.black)),
+                          Expanded(child: Text('${i['f_part1name']} ${i['f_dishname']}',
+                              maxLines: 2,
+                              style: const TextStyle(color: Colors.black))),
                           Expanded(child: Container()),
                           const Icon(Icons.access_time_rounded),
                           SizedBox(
@@ -264,6 +176,12 @@ class _BodyState extends State<_Body> {
         onTap: () {
           if (o["progress"] == 1 ) {
             widget.model.changeState(o);
+          } else {
+            if (o['f_amountcash'] == 0
+                && o['f_amountcard'] == 0
+                && o['f_amountidram'] == 0) {
+              widget.model.endOrder(o);
+            }
           }
         },
         child: Container(
@@ -305,12 +223,11 @@ class _BodyState extends State<_Body> {
                           || (o['f_amountidram'] ?? 0) > 0) ...[
                             Icon(Icons.paid_outlined)
                           ],
-                          Text('${i['f_part2name']} ${i['f_dishname']}'),
-                          Expanded(child: Container()),
+                          Expanded(child: Text('${i['f_part2name']} ${i['f_dishname']}')),
                           const Icon(Icons.access_alarm_rounded),
                           SizedBox(
                               width: 150,
-                              child:Text('${dateTimeToTimeStr(o['f_begin'])} - ${dateTimeToTimeStr(o['f_done'])}', textAlign: TextAlign.right,
+                              child: Text('${dateTimeToTimeStr(o['f_begin'])} - ${dateTimeToTimeStr(o['f_done'])}', textAlign: TextAlign.right,
                                   style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
