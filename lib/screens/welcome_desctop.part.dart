@@ -180,10 +180,6 @@ extension WelcomeDesktop on WelcomeScreen {
                                   ],
                                 ]),
                               )),
-                          MTextFormField(
-                            controller: model.carNumberController,
-                            hintText: 'Պետհամարանիշ',
-                          ),
                           Payment(model.appdata.basketData, model),
                           const SizedBox(
                             height: 5,

@@ -82,11 +82,12 @@ class AppModel {
   }
 
   Future<String> initModel() async {
-    dialogController.add(1);
+   // dialogController.add(1);
     final queryResult = await WebHttpQuery('/engine/carwash/init-data.php').request({
       'f_menu' : int.tryParse(prefs.string('menucode')) ?? 0
     });
-    Navigator.pop(Loading.dialogContext);
+    //Navigator.pop(Loading.dialogContext);
+
     if (queryResult['status'] == 1) {
       String s = queryResult['data'][0];
       httpOk(query_init, jsonDecode(s));

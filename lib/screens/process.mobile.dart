@@ -23,9 +23,7 @@ extension ProcessMobile on _BodyState {
               pending++;
             }
           }
-          return //ORDERS
-            Expanded(
-                child: SingleChildScrollView(
+          return  SingleChildScrollView(
                   child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -92,6 +90,6 @@ extension ProcessMobile on _BodyState {
 
 
 
-                                      ])));});
+                                      ]));});
   }
 }
