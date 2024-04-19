@@ -8,6 +8,7 @@ class MTextFormField extends TextFormField {
       bool readOnly = false,
       bool  autofocus = false,
           int? maxLength,
+          VoidCallback? onTap,
       required String hintText, super.style})
       : super(
             controller: controller,
@@ -15,6 +16,7 @@ class MTextFormField extends TextFormField {
             minLines: minLines,
             readOnly: readOnly,
             autofocus: autofocus,
+            onTap: onTap,
             maxLength: maxLength,
             decoration: InputDecoration(
                 label: Text(hintText),

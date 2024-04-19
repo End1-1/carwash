@@ -1,7 +1,6 @@
 part of "process.dart";
 
 extension ProcessMobile on _BodyState {
-
   Widget bodyMobile() {
     return StreamBuilder(
         stream: widget.model.basketController.stream,
@@ -23,10 +22,10 @@ extension ProcessMobile on _BodyState {
               pending++;
             }
           }
-          return  SingleChildScrollView(
-                  child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          return SingleChildScrollView(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(10),
@@ -44,21 +43,12 @@ extension ProcessMobile on _BodyState {
                         color: Colors.white),
                   ),
                 ),
-
-
-
-
                 for (final o in snapshot.data ?? []) ...[
                   if (o['progress'] == 1) ...[
                     pendingWidget(o),
-                    const Divider(
-                        color: Colors.white,
-                        height: 2,
-                        thickness: 2)
+                    const Divider(color: Colors.white, height: 2, thickness: 2)
                   ]
                 ],
-
-
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(10),
@@ -76,20 +66,13 @@ extension ProcessMobile on _BodyState {
                         color: Colors.white),
                   ),
                 ),
-
-
-                                            for (final o in snapshot.data ?? []) ...[
-                                              if (o['progress'] > 1) ...[
-                                                processWidget(o),
-                                                const Divider(
-                                                    color: Colors.white,
-                                                    height: 2,
-                                                    thickness: 2)
-                                              ]
-                                            ],
-
-
-
-                                      ]));});
+                for (final o in snapshot.data ?? []) ...[
+                  if (o['progress'] > 1) ...[
+                    processWidget(o),
+                    const Divider(color: Colors.white, height: 2, thickness: 2)
+                  ]
+                ],
+              ]));
+        });
   }
 }
