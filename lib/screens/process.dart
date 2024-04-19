@@ -79,6 +79,9 @@ class _BodyState extends State<Body> {
   }
 
   Widget processWidget(Map<String, dynamic> o) {
+    if (prefs.string('appmode') == '3') {
+      return bigProcessWidget(o);
+    }
     return InkWell(
         onTap: () {
           if (o["progress"] == 2 || o["progress"] == 3 || o['progress'] == 4) {
@@ -172,6 +175,9 @@ class _BodyState extends State<Body> {
   }
 
   Widget pendingWidget(Map<String, dynamic> o) {
+    if (prefs.string('appmode') == '3') {
+      return bigPendingWidget(o);
+    }
     return InkWell(
         onTap: () {
           if (o["progress"] == 1 ) {
@@ -224,6 +230,169 @@ class _BodyState extends State<Body> {
                             Icon(Icons.paid_outlined)
                           ],
                           Expanded(child: Text('${i['f_part2name']} ${i['f_dishname']}')),
+                          const Icon(Icons.access_alarm_rounded),
+                          SizedBox(
+                              width: 150,
+                              child: Text('${dateTimeToTimeStr(o['f_begin'])} - ${dateTimeToTimeStr(o['f_done'])}', textAlign: TextAlign.right,
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black)))
+                        ],
+                      )
+                    ]
+                  ],
+                )
+              ],
+            )));
+  }
+
+  Widget bigProcessWidget(Map<String, dynamic> o) {
+    return InkWell(
+        onTap: () {
+          if (o["progress"] == 2 || o["progress"] == 3 || o['progress'] == 4) {
+            widget.model.changeState(o);
+          } else {
+            if (o['f_amountcash'] == 0
+                && o['f_amountcard'] == 0
+                && o['f_amountidram'] == 0) {
+              widget.model.endOrder(o);
+            }
+          }
+        },
+        child: Container(
+            padding: const EdgeInsets.all(5),
+            margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+            decoration: BoxDecoration(color: o['f_state'] == 1 ?
+            const Color(0xff94a5ba) :
+            const Color(0xffaaeeaa)),
+            child:
+            Column(
+              children: [
+                Row(
+                  children: [
+                    if (o['progress'] == 2)
+                      Image.asset('assets/icons/shower.png', height: 40,),
+                    if (o['progress'] == 3)
+                      Image.asset('assets/icons/fan.png', height: 40,),
+                    if (o['progress'] == 4)...[
+                      if (DateTime.now().difference(strToDateTime(o['f_washdate'])).inMinutes <= 120)
+                        Image.asset('assets/icons/timer.png', height: 40),
+                      if (DateTime.now().difference(strToDateTime(o['f_washdate'])).inMinutes > 120)
+                        Image.asset('assets/icons/parking.png', height: 40),
+                    ],
+
+                    Text(
+                      o['f_tablename'],
+                      style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 30),
+                    ),
+                    Expanded(child: Container()),
+                    const Icon(Icons.car_repair_outlined),
+                    SizedBox(
+                        width: 100,
+                        child: Text(o['f_carnumber'],
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 30)))
+                  ],
+                ),
+                Column(
+                  children: [
+                    for (final i in o['f_items'] ?? []) ...[
+                      Row(
+                        children: [
+                          if ((o['f_amountcash'] ?? 0) > 0
+                              || (o['f_amountcard'] ?? 0)> 0
+                              || (o['f_amountidram'] ?? 0) > 0) ...[
+                            Icon(Icons.paid_outlined)
+                          ],
+                          Expanded(flex: 2, child: Text('${i['f_part1name']} ${i['f_dishname']}',
+                              maxLines: 2,
+                              style: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.w900))),
+                          Expanded(child: Container()),
+                          const Icon(Icons.access_time_rounded),
+                          SizedBox(
+                              width: 100,
+                              child: Text(
+                                  "S"))
+                        ],
+                      ),
+                      Row(children: [
+                        Expanded(child: Container()),
+                        const Icon(Icons.access_alarm_rounded),
+                        SizedBox(
+                            width: 100,
+                            child:Text('${DateTime.now().difference(strToDateTime(o['f_washdate'])).inMinutes}', textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black)))
+                      ],)
+                    ]
+                  ],
+                )
+              ],
+            )));
+  }
+
+  Widget bigPendingWidget(Map<String, dynamic> o) {
+    return InkWell(
+        onTap: () {
+          if (o["progress"] == 1 ) {
+            widget.model.changeState(o);
+          } else {
+            if (o['f_amountcash'] == 0
+                && o['f_amountcard'] == 0
+                && o['f_amountidram'] == 0) {
+              widget.model.endOrder(o);
+            }
+          }
+        },
+        child: Container(
+            padding: const EdgeInsets.all(5),
+            margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+            decoration: const BoxDecoration(color: Color(0xff94a5ba)),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      o['f_tablename'],
+                      style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 30),
+                    ),
+                    Expanded(
+                      child: Container(),
+                    ),
+                    const Icon(Icons.car_repair_outlined),
+                    SizedBox(
+                        width: 150,
+                        child: Text(o['f_carnumber'],
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 30))),
+                  ],
+                ),
+                Column(
+                  children: [
+                    for (final i in o['f_items'] ?? []) ...[
+                      Row(
+                        children: [
+                          if ((o['f_amountcash'] ??0) > 0
+                              || (o['f_amountcard'] ?? 0) > 0
+                              || (o['f_amountidram'] ?? 0) > 0) ...[
+                            Icon(Icons.paid_outlined)
+                          ],
+                          Expanded(child: Text('${i['f_part2name']} ${i['f_dishname']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20))),
                           const Icon(Icons.access_alarm_rounded),
                           SizedBox(
                               width: 150,
