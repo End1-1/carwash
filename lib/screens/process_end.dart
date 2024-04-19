@@ -10,9 +10,6 @@ import 'app/model.dart';
 
 class ProcessEndScreen {
   static Future<bool?> show(Map<String, dynamic> o, AppModel model) async {
-    if (o['progress'] != 4) {
-      return false;
-    }
     return await showDialog(
         context: Prefs.navigatorKey.currentContext!,
         builder: (BuildContext context) {

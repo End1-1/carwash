@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/basket.dart';
 import 'package:carwash/screens/car_number.dart';
 import 'package:carwash/screens/dishes.dart';
 import 'package:carwash/screens/help/screen_help.dart';
+import 'package:carwash/screens/login.dart';
 import 'package:carwash/screens/process.dart';
 import 'package:carwash/screens/process_end.dart';
 import 'package:carwash/screens/settings.dart';
@@ -21,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
+import '../status.dart';
 import 'data.dart';
 
 class AppModel {
@@ -58,6 +61,7 @@ class AppModel {
   Size? screenSize;
   var screenMultiple = 0.43;
   var printFiscal = true;
+  var login = false;
 
   AppModel() {
     appdata = Data(this);
@@ -83,6 +87,15 @@ class AppModel {
 
   Future<String> initModel() async {
    // dialogController.add(1);
+    final loginResult = await WebHttpQuery('/engine/login.php').request({
+      'method': 3,
+      'sessionkey': prefs.string('passhash')
+    });
+    if (loginResult['status'] == 1) {
+      login = true;
+      prefs.setInt("user_group", loginResult['data']['user']['f_group']);
+    }
+
     final queryResult = await WebHttpQuery('/engine/carwash/init-data.php').request({
       'f_menu' : int.tryParse(prefs.string('menucode')) ?? 0
     });
@@ -111,15 +124,38 @@ class AppModel {
     return appdata.translation[key]!['f_am']!;
   }
 
+  Future<void> tryLogin(String? pin) async {
+    final result = await WebHttpQuery('/engine/login.php').request({
+      'method':2,
+      'pin': pin ?? ''
+    });
+    if (result['status'] == 1) {
+      login = true;
+      prefs.setString('passhash', result['data']['sessionkey']);
+      prefs.setInt('user_group', result['data']['user']['f_group']);
+      navHome();
+    } else {
+      dialogController.add(result['data']);
+    }
+  }
+
   void openMenu() {
     BlocProvider.of<AppAnimateBloc>(prefs.context()).add(AppAnimateEventRaise());
   }
 
+  void navLogin() {
+    Navigator.pushAndRemoveUntil(prefs.context(), MaterialPageRoute(builder: (builder) => LoginScreen(this)), (route) =>false);
+  }
+
   void navHome() {
-    Navigator.pushAndRemoveUntil(
-        Prefs.navigatorKey.currentContext!,
-        MaterialPageRoute(builder: (builder) => WelcomeScreen(this)),
-        (r) => false);
+    if (login) {
+      Navigator.pushAndRemoveUntil(
+          Prefs.navigatorKey.currentContext!,
+          MaterialPageRoute(builder: (builder) => WelcomeScreen(this)),
+              (r) => false);
+    } else {
+      navLogin();
+    }
   }
 
   void navHelp() {
@@ -153,6 +189,11 @@ class AppModel {
         MaterialPageRoute(builder: (builder) => ProcessScreen(this)));
   }
 
+  void navStatus() {
+    Navigator.pop(prefs.context());
+    Navigator.push(prefs.context(), MaterialPageRoute(builder: (builder) => StatusScreen(this)));
+  }
+
   void saveSettings() {
     prefs.setString('serveraddress', settingsServerAddressController.text);
     prefs.setString('webserveraddress', settingsWebServerAddressController.text);
@@ -164,7 +205,11 @@ class AppModel {
     prefs.setString('config', configController.text);
     prefs.setString('afterbaskettoorders', afterBasketToOrdersController.text);
     initModel().then((value) {
-      navHome();
+      if (login) {
+        navHome();
+      } else {
+        navLogin();
+      }
     });
   }
 

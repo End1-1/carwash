@@ -83,14 +83,17 @@ class Dialogs {
           return SimpleDialog(
             alignment: Alignment.center,
             title: Text(prefs.appTitle()),
-            children: const [PinForm()],
+            children: [PinForm(pinOk: (pin){
+              Navigator.pop(context, pin);
+            },)],
           );
         });
   }
 }
 
 class PinForm extends StatefulWidget {
-  const PinForm({super.key});
+  final Function(String?) pinOk;
+  const PinForm({super.key, required this.pinOk});
 
   @override
   State<StatefulWidget> createState() => _PinFormState();
@@ -144,6 +147,16 @@ class _PinFormState extends State<PinForm> {
                 width: 15,
                 decoration: BoxDecoration(
                     color: pin.length >= 4 ? Colors.black54 : Colors.white,
+                    borderRadius: const BorderRadius.all(Radius.circular(30)),
+                    border: const Border.fromBorderSide(
+                        BorderSide(color: Colors.black54))),
+              ),
+              Container(
+                margin: const EdgeInsets.all(5),
+                height: 15,
+                width: 15,
+                decoration: BoxDecoration(
+                    color: pin.length >= 5 ? Colors.black54 : Colors.white,
                     borderRadius: const BorderRadius.all(Radius.circular(30)),
                     border: const Border.fromBorderSide(
                         BorderSide(color: Colors.black54))),
@@ -202,7 +215,7 @@ class _PinFormState extends State<PinForm> {
               inkWell('0'),
               InkWell(
                   onTap: () {
-                    Navigator.pop(context, pin);
+                    widget.pinOk(pin);
                   },
                   child: Container(
                       margin: const EdgeInsets.all(5),

@@ -81,7 +81,7 @@ class _BodyState extends State<Body> {
   Widget processWidget(Map<String, dynamic> o) {
     return InkWell(
         onTap: () {
-          if (o["progress"] == 2 || o["progress"] == 3) {
+          if (o["progress"] == 2 || o["progress"] == 3 || o['progress'] == 4) {
              widget.model.changeState(o);
           } else {
             if (o['f_amountcash'] == 0

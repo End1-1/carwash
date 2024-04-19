@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/model.dart';
+import 'package:carwash/screens/login.dart';
 import 'package:carwash/screens/welcome.dart';
 import 'package:carwash/utils/http_overrides.dart';
 import 'package:carwash/utils/prefs.dart';
@@ -29,7 +30,8 @@ void main() async {
   });
   runApp(
     MultiBlocProvider(providers: [
-      BlocProvider<AppAnimateBloc>(create: (context) => AppAnimateBloc())
+      BlocProvider<AppAnimateBloc>(create: (context) => AppAnimateBloc()),
+      BlocProvider<AppBloc>(create: (context) => AppBloc()),
 
     ], child: const App()));
 
@@ -64,7 +66,7 @@ class _App extends State<App> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: WelcomeScreen(_appModel..dialogController.add(error)),
+      home: _appModel.login ? WelcomeScreen(_appModel..dialogController.add(error)) : LoginScreen(_appModel),
     );
   }
 

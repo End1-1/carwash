@@ -166,20 +166,6 @@ extension WelcomMobile on WelcomeScreen {
                   fontWeight: FontWeight.bold))),
       PopupMenuItem(
           child: ListTile(
-        leading: const Icon(
-          Icons.monitor,
-          color: Colors.white,
-        ),
-        title: Text(model.tr('Process'),
-            style: const TextStyle(color: Colors.white)),
-        onTap: () {
-          BlocProvider.of<AppAnimateBloc>(prefs.context())
-              .add(AppAnimateEvent());
-          model.navProcess();
-        },
-      )),
-      PopupMenuItem(
-          child: ListTile(
         leading: SizedBox(
             width: 24,
             height: 24,
@@ -237,7 +223,28 @@ extension WelcomMobile on WelcomeScreen {
               .add(AppAnimateEvent());
           model.navProcess();
         },
-      ))
+      )),
+      if ((prefs.getInt('user_group') ?? 0) == 1)
+        PopupMenuItem(
+            child: ListTile(
+          leading: const Icon(Icons.request_page_outlined, color: Colors.white),
+          title: Text(model.tr('Carwash status'),
+              style: const TextStyle(color: Colors.white)),
+          onTap: () {
+            BlocProvider.of<AppAnimateBloc>(prefs.context())
+                .add(AppAnimateEvent());
+            model.navStatus();
+          },
+        )),
+      PopupMenuItem(
+          child: ListTile(
+            leading: const Icon(Icons.logout, color: Colors.white),
+            title: Text(model.tr('Logout'), style: const TextStyle(color: Colors.white),),
+            onTap: () {
+              prefs.setString('passhash', '');
+              model.navLogin();
+            },
+          )),
     ];
   }
 }

@@ -98,7 +98,27 @@ extension WelcomeDesktop on WelcomeScreen {
                     leading: const Icon(Icons.monitor),
                     title: Text(model.tr('Process')),
                     onTap: model.navProcess,
-                  ))
+                  )),
+              if ((prefs.getInt('user_group') ?? 0) == 1)
+                PopupMenuItem(
+                    child: ListTile(
+                      leading: const Icon(Icons.request_page_outlined),
+                      title: Text(model.tr('Carwash status')),
+                      onTap: () {
+                        BlocProvider.of<AppAnimateBloc>(prefs.context())
+                            .add(AppAnimateEvent());
+                        model.navStatus();
+                      },
+                    )),
+              PopupMenuItem(
+                  child: ListTile(
+                    leading: const Icon(Icons.logout),
+                    title: Text(model.tr('Logout')),
+                    onTap: () {
+                      prefs.setString('passhash', '');
+                      model.navLogin();
+                    },
+                  )),
             ];
           },
         )
