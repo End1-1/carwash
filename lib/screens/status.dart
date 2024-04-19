@@ -282,7 +282,7 @@ class StatusScreen extends AppScreen {
                         //Profit
                         const SizedBox(height: 5),
                         SizedBox(
-                            width: 120,
+                            width: 150,
                             child: Text(
                               model.tr('Profit'),
                               style: const TextStyle(
@@ -291,9 +291,9 @@ class StatusScreen extends AppScreen {
                                   fontSize: 24),
                             )),
                         SizedBox(
-                            width: 120,
+                            width: 150,
                             child: Text(
-                              state.data['totalfiscal'][0][0],
+                              state.data['total'][0][0],
                               style: const TextStyle(
                                   color: StatusModel.colorGreen,
                                   fontWeight: FontWeight.bold,
