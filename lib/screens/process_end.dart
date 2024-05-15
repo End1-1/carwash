@@ -32,9 +32,11 @@ class ProcessEndScreen {
               },
               'engine/carwash/end-order.php');
           if ((o['f_print'] ?? 0) == 0) {
-            await model.httpQuery2(AppModel.query_print_fiscal,
-                {"id": o['f_id'], 'mode': model.printFiscal ? 1 : 0},
-                route: HttpQuery2.printfiscal);
+            if (prefs.string("serveraddress") != '-1') {
+              await model.httpQuery2(AppModel.query_print_fiscal,
+                  {"id": o['f_id'], 'mode': model.printFiscal ? 1 : 0},
+                  route: HttpQuery2.printfiscal);
+            }
             // await model.httpQuery(AppModel.query_payment, {
             //   'query': AppModel.query_payment,
             //   'params': o
@@ -56,9 +58,11 @@ class ProcessEndScreen {
               },
               'engine/carwash/end-order.php');
           if ((o['f_print'] ?? 0) == 0) {
-            await model.httpQuery2(AppModel.query_print_fiscal,
-                {"id": o['f_id'], 'mode': model.printFiscal ? 1 : 0},
-                route: HttpQuery2.printfiscal);
+            if (prefs.string("serveraddress") != '-1') {
+              await model.httpQuery2(AppModel.query_print_fiscal,
+                  {"id": o['f_id'], 'mode': model.printFiscal ? 1 : 0},
+                  route: HttpQuery2.printfiscal);
+            }
             // await model.httpQuery(AppModel.query_payment, {
             //   'query': AppModel.query_payment,
             //   'params': o

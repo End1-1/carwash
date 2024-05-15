@@ -17,6 +17,7 @@ class WebHttpQuery {
         inData[key] = DateFormat('yyyy-MM-dd HH:mm:ss').format(value);
       }
     });
+    inData['sessionkey'] = prefs.string('passhash');
     inData['apikey'] = prefs.string("apikey");
     inData['apikey'] ='8eabcee4-f1bc-11ee-8b0f-021eaa527a65-a0d5c784-f1bc-11ee-8b0f-021eaa527a65';
     inData['config'] = prefs.string('config');

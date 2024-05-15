@@ -6,8 +6,6 @@ import 'package:carwash/screens/widgets/part2.dart';
 import 'package:carwash/screens/widgets/payment.dart';
 import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/prefs.dart';
-import 'package:carwash/widgets/text_form_field.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

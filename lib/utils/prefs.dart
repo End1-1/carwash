@@ -1,5 +1,6 @@
 
 import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 extension Prefs on SharedPreferences {
@@ -15,6 +16,10 @@ extension Prefs on SharedPreferences {
 
   BuildContext context() {
     return navigatorKey.currentContext!;
+  }
+
+  String dateStr(DateTime d) {
+    return DateFormat('yyyy-MM-dd').format(d);
   }
 }
 

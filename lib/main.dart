@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/model.dart';
+import 'package:carwash/screens/app/question_bloc.dart';
+import 'package:carwash/screens/cashdesk.dart';
 import 'package:carwash/screens/login.dart';
 import 'package:carwash/screens/welcome.dart';
 import 'package:carwash/utils/http_overrides.dart';
@@ -32,7 +34,8 @@ void main() async {
     MultiBlocProvider(providers: [
       BlocProvider<AppAnimateBloc>(create: (context) => AppAnimateBloc()),
       BlocProvider<AppBloc>(create: (context) => AppBloc()),
-
+      BlocProvider<CashBloc>(create: (context) => CashBloc()),
+      BlocProvider<QuestionBloc>(create: (context) => QuestionBloc())
     ], child: const App()));
 
 }

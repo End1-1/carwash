@@ -30,7 +30,7 @@ extension WelcomeDesktop on WelcomeScreen {
                   model.appdata.loadPart2(p1['f_id']);
                 },
                 child: Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                     ),
                     child: Text(p1['f_name'],
                         textAlign: TextAlign.center,
@@ -98,6 +98,16 @@ extension WelcomeDesktop on WelcomeScreen {
                     leading: const Icon(Icons.monitor),
                     title: Text(model.tr('Process')),
                     onTap: model.navProcess,
+                  )),
+              PopupMenuItem(
+                  child: ListTile(
+                    leading: const Icon(Icons.monitor),
+                    title: Text(model.tr('Cashdesk')),
+                    onTap: () {
+                      BlocProvider.of<AppAnimateBloc>(prefs.context())
+                          .add(AppAnimateEvent());
+                      model.navCashdesk();
+                    },
                   )),
               if ((prefs.getInt('user_group') ?? 0) == 1)
                 PopupMenuItem(

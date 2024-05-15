@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:carwash/screens/app/appbloc.dart';
+import 'package:carwash/screens/app/question_bloc.dart';
 import 'package:carwash/screens/basket.dart';
 import 'package:carwash/screens/car_number.dart';
+import 'package:carwash/screens/cashdesk.dart';
 import 'package:carwash/screens/dishes.dart';
 import 'package:carwash/screens/help/screen_help.dart';
 import 'package:carwash/screens/login.dart';
@@ -189,6 +191,11 @@ class AppModel {
         MaterialPageRoute(builder: (builder) => ProcessScreen(this)));
   }
 
+  void navCashdesk() {
+    Navigator.push(Prefs.navigatorKey.currentContext!,
+        MaterialPageRoute(builder: (builder) => CashdeskScreen(this)));
+  }
+
   void navStatus() {
     Navigator.pop(prefs.context());
     Navigator.push(prefs.context(), MaterialPageRoute(builder: (builder) => StatusScreen(this)));
@@ -211,6 +218,10 @@ class AppModel {
         navLogin();
       }
     });
+  }
+
+  void closeQuestionDialog() {
+    BlocProvider.of<QuestionBloc>(prefs.context()).add(QuestionEvent());
   }
 
   void navDishes(filter) {
@@ -239,6 +250,10 @@ class AppModel {
     }
     Navigator.push(Prefs.navigatorKey.currentContext!,
         MaterialPageRoute(builder: (builder) => BasketScreen(this)));
+  }
+
+  void closeErrorDialog() {
+    BlocProvider.of<AppBloc>(prefs.context()).add(AppEvent());
   }
 
   Future<void> removeOrder(Map<String, dynamic> data) async {
@@ -288,6 +303,7 @@ class AppModel {
   }
 
   void getProcessList() async {
+    basketController.add(null);
     final queryResult = await WebHttpQuery('/engine/carwash/get-process-list.php').request({
             'f_menu': int.tryParse(prefs.string('menucode')) ?? 0
 
@@ -347,24 +363,39 @@ class AppModel {
         appdata.basket.clear();
         carNumberController.clear();
         appdata.basketTotal();
-        if (prefs.string('afterbaskettoorders') == '1') {
-          navProcess();
-        } else {
-          navHome();
-        }
-        Dialogs.show(tr('Your order was created'));
+        Dialogs.show(tr('Your order was created')).then((value) {
+          if (prefs.string('afterbaskettoorders') == '1') {
+            navProcess();
+          } else {
+            navHome();
+          }
+        });
         break;
       case query_create_order:
         if ((appdata.basketData['f_amountcash'] ?? 0) > 0 ||
             (appdata.basketData['f_amountcard'] ?? 0) > 0 ||
             (appdata.basketData['f_amountidram'] ?? 0) > 0) {
-          httpQuery2(
-              query_print_fiscal,
-              {
-                'id': jsonDecode(data)["data"],
-                'mode': printFiscal ? 1 : 0
-              },
-              route: HttpQuery2.printfiscal);
+          if (prefs.string('serveraddress') != '-1') {
+            httpQuery2(
+                query_print_fiscal,
+                {
+                  'id': jsonDecode(data)["data"],
+                  'mode': printFiscal ? 1 : 0
+                },
+                route: HttpQuery2.printfiscal);
+
+          } else {
+            appdata.basket.clear();
+            carNumberController.clear();
+            appdata.basketTotal();
+            Dialogs.show(tr('Your order was created')).then((value) {
+              if (prefs.string('afterbaskettoorders') == '1') {
+                navProcess();
+              } else {
+                navHome();
+              }
+            });
+          }
           return;
         }
         appdata.basket.clear();

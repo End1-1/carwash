@@ -30,11 +30,6 @@ class HttpQuery2 {
               Uri.https('${prefs.string("serveraddress")}:10002', route),
               headers: {
                 'Content-Type': 'application/json',
-                //'Content-Length': '${utf8.encode(strBody).length}'
-                // "Access-Control-Allow-Origin": "*",
-                // "Access-Control-Allow-Methods": "GET,PUT,PATCH,POST,DELETE",
-                // "Access-Control-Allow-Headers":
-                //     "Origin, X-Requested-With, Content-Type, Accept"
               },
               body: utf8.encode(strBody))
           .timeout(const Duration(seconds: 120), onTimeout: () {

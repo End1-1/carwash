@@ -2,7 +2,7 @@ name: carwash
 description: "Carwash"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+5
+version: 1.0.0+10
 
 environment:
   sdk: '>=3.0.0-277.0.dev <4.0.0'
@@ -40,17 +40,17 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icons/kinopark.png"
+  image_path: "assets/icons/carwash.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   web:
     generate: true
-    image_path: "assets/icons/kinopark.png"
+    image_path: "assets/icons/carwash.png"
     background_color: "#hexcode"
     theme_color: "#hexcode"
   windows:
     generate: true
-    image_path: "assets/icons/kinopark.png"
+    image_path: "assets/icons/carwash.png"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/icons/kinopark.png"
+    image_path: "assets/icons/carwash.png"

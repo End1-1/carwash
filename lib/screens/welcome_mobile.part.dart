@@ -224,6 +224,17 @@ extension WelcomMobile on WelcomeScreen {
           model.navProcess();
         },
       )),
+      PopupMenuItem(
+          child: ListTile(
+            leading: const Icon(Icons.monitor, color: Colors.white),
+            title: Text(model.tr('Cashdesk'),
+                style: const TextStyle(color: Colors.white)),
+            onTap: () {
+              BlocProvider.of<AppAnimateBloc>(prefs.context())
+                  .add(AppAnimateEvent());
+              model.navCashdesk();
+            },
+          )),
       if ((prefs.getInt('user_group') ?? 0) == 1)
         PopupMenuItem(
             child: ListTile(

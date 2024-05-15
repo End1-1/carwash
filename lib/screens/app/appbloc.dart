@@ -16,6 +16,11 @@ class AppStateFinish extends AppState {
   AppStateFinish(this.data);
 }
 
+class AppStateCash extends AppStateFinish {
+  AppStateCash(super.data);
+
+}
+
 class AppStateError extends AppState {
   final String error;
   AppStateError(this.error);
@@ -30,6 +35,20 @@ class AppEventQuery extends AppEvent {
   final dynamic data;
   final String route;
   AppEventQuery(this.route, this.data);
+}
+
+class AppEventQueryCash extends AppEventQuery {
+  AppEventQueryCash(super.route, super.data);
+
+}
+
+class AppEventQueryRemoveFromCash extends AppEventQuery {
+  AppEventQueryRemoveFromCash(super.route, super.data);
+
+}
+
+class AppEventQueryCloseDay extends AppEventQuery {
+  AppEventQueryCloseDay(super.route, super.data);
 }
 
 class AppAnimateState extends Equatable {
@@ -57,18 +76,25 @@ class AppAnimateBloc extends Bloc<AppAnimateEvent, AppAnimateState> {
 
 class AppBloc extends Bloc<AppEvent, AppState> {
   AppBloc() : super(AppState()) {
+    on<AppEvent>((event, emit) => emit(AppState()));
     on<AppEventQuery>((event, emit) => query(event));
+    on<AppEventQueryCash>((event, emit) => query(event));
+    on<AppEventQueryRemoveFromCash>((event, emit) => query(event));
+    on<AppEventQueryCloseDay>((event, emit) => query(event));
   }
 
   Future<void> query(AppEventQuery e) async {
     emit(AppStateLoading());
     final result = await WebHttpQuery(e.route).request(e.data);
     if (result['status'] == 1) {
-      emit(AppStateFinish(result['data']));
+      if (e is AppEventQueryCash || e is AppEventQueryRemoveFromCash || e is AppEventQueryCloseDay) {
+        emit(AppStateCash(result['data']));
+      } else {
+        emit(AppStateFinish(result['data']));
+      }
     } else {
       emit(AppStateError(result['data']));
     }
-
   }
 
 }
