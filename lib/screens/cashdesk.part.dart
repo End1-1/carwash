@@ -68,9 +68,7 @@ class CashdeskModel {
   }
 
   void save() {
-    final d =
-        deals.firstWhere((element) => element['id'].isEmpty, orElse: () => {});
-    if (d.isEmpty) {
+    if (deals.isEmpty) {
       return;
     }
     deals.clear();

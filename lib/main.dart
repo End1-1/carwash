@@ -6,6 +6,7 @@ import 'package:carwash/screens/app/question_bloc.dart';
 import 'package:carwash/screens/cashdesk.dart';
 import 'package:carwash/screens/login.dart';
 import 'package:carwash/screens/welcome.dart';
+import 'package:carwash/screens/widgets/dish_basket.dart';
 import 'package:carwash/utils/http_overrides.dart';
 import 'package:carwash/utils/prefs.dart';
 import 'package:carwash/utils/web_query.dart';
@@ -35,7 +36,8 @@ void main() async {
       BlocProvider<AppAnimateBloc>(create: (context) => AppAnimateBloc()),
       BlocProvider<AppBloc>(create: (context) => AppBloc()),
       BlocProvider<CashBloc>(create: (context) => CashBloc()),
-      BlocProvider<QuestionBloc>(create: (context) => QuestionBloc())
+      BlocProvider<QuestionBloc>(create: (context) => QuestionBloc()),
+      BlocProvider<CookingTimeBlok>(create: (context) => CookingTimeBlok(CookingTimeState()))
     ], child: const App()));
 
 }

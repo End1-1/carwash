@@ -7,9 +7,9 @@ class DishDialog {
 
 
 
-  static void show(Map<String, dynamic> data, AppModel model) {
+  static show(Map<String, dynamic> data, AppModel model) {
     data['f_qty'] = 1.0;
-    showGeneralDialog(
+    showGeneralDialog<Map<String, dynamic>?>(
         context: Prefs.navigatorKey.currentContext!,
         barrierDismissible: true,
         barrierLabel: '',
@@ -33,7 +33,7 @@ class DishDialog {
           return Container();
         }).then((value) {
       if (value != null) {
-        model.addToBasket(data);
+        model.addToBasket(value);
       }
     });
   }

@@ -109,7 +109,7 @@ class Data {
       }
       if (e['progress'] > 1 && e['progress'] < 4) {
         last[e['f_table']] =
-            strToDateTime(e['f_washdate']).add(Duration(minutes: 60));
+            strToDateTime(e['f_washdate']).add(Duration(minutes: e['f_washtime'] + e['f_drytime']));
         e['f_begin'] = strToDateTime(e['f_washdate']);
         e['f_done'] = last[e['f_table']];
       }
@@ -132,8 +132,8 @@ class Data {
       e['f_table'] = lastKey;
       e['f_tablename'] = 'BOX $lastKey';
       e['f_begin'] = lastMin;
-      e['f_done'] = lastMin.add(Duration(minutes: 60));
-      last[lastKey] = lastMin.add(Duration(minutes: 60));
+      e['f_done'] = lastMin.add(Duration(minutes: e['f_washtime'] + e['f_drytime']));
+      last[lastKey] = lastMin.add(Duration(minutes: e['f_washtime'] + e['f_drytime']));
     }
   }
 }

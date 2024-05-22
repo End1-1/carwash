@@ -117,9 +117,9 @@
     },
     {
       "name": "flutter",
-      "rootUri": "file:///C:/projects/dev/flutter/packages/flutter",
+      "rootUri": "file:///C:/soft/flutter/packages/flutter",
       "packageUri": "lib/",
-      "languageVersion": "3.2"
+      "languageVersion": "3.3"
     },
     {
       "name": "flutter_bloc",
@@ -153,13 +153,13 @@
     },
     {
       "name": "flutter_test",
-      "rootUri": "file:///C:/projects/dev/flutter/packages/flutter_test",
+      "rootUri": "file:///C:/soft/flutter/packages/flutter_test",
       "packageUri": "lib/",
-      "languageVersion": "3.2"
+      "languageVersion": "3.3"
     },
     {
       "name": "flutter_web_plugins",
-      "rootUri": "file:///C:/projects/dev/flutter/packages/flutter_web_plugins",
+      "rootUri": "file:///C:/soft/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -201,21 +201,21 @@
     },
     {
       "name": "leak_tracker",
-      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/leak_tracker-10.0.0",
+      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/leak_tracker-10.0.4",
       "packageUri": "lib/",
-      "languageVersion": "3.1"
+      "languageVersion": "3.2"
     },
     {
       "name": "leak_tracker_flutter_testing",
-      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/leak_tracker_flutter_testing-2.0.1",
+      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/leak_tracker_flutter_testing-3.0.3",
       "packageUri": "lib/",
-      "languageVersion": "3.1"
+      "languageVersion": "3.2"
     },
     {
       "name": "leak_tracker_testing",
-      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/leak_tracker_testing-2.0.1",
+      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/leak_tracker_testing-3.0.1",
       "packageUri": "lib/",
-      "languageVersion": "3.1"
+      "languageVersion": "3.2"
     },
     {
       "name": "lints",
@@ -237,7 +237,7 @@
     },
     {
       "name": "meta",
-      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/meta-1.11.0",
+      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/meta-1.12.0",
       "packageUri": "lib/",
       "languageVersion": "2.12"
     },
@@ -357,7 +357,7 @@
     },
     {
       "name": "sky_engine",
-      "rootUri": "file:///C:/projects/dev/flutter/bin/cache/pkg/sky_engine",
+      "rootUri": "file:///C:/soft/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -399,7 +399,7 @@
     },
     {
       "name": "test_api",
-      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/test_api-0.6.1",
+      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/test_api-0.7.0",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },
@@ -447,9 +447,9 @@
     },
     {
       "name": "vm_service",
-      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/vm_service-13.0.0",
+      "rootUri": "file:///C:/Users/vasili/AppData/Local/Pub/Cache/hosted/pub.dev/vm_service-14.2.1",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "3.3"
     },
     {
       "name": "web",
@@ -488,7 +488,10 @@
       "languageVersion": "3.0"
     }
   ],
-  "generated": "2024-05-15T14:32:41.588687Z",
+  "generated": "2024-05-22T13:18:18.014877Z",
   "generator": "pub",
-  "generatorVersion": "3.3.4"
+  "generatorVersion": "3.4.0",
+  "flutterRoot": "file:///C:/soft/flutter",
+  "flutterVersion": "3.22.0",
+  "pubCache": "file:///C:/Users/vasili/AppData/Local/Pub/Cache"
 }
