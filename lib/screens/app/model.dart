@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/question_bloc.dart';
 import 'package:carwash/screens/basket.dart';
 import 'package:carwash/screens/car_number.dart';
 import 'package:carwash/screens/cashdesk.dart';
+import 'package:carwash/screens/cashsession.dart';
 import 'package:carwash/screens/dishes.dart';
 import 'package:carwash/screens/help/screen_help.dart';
+import 'package:carwash/screens/history.dart';
 import 'package:carwash/screens/login.dart';
 import 'package:carwash/screens/process.dart';
 import 'package:carwash/screens/process_end.dart';
@@ -17,11 +18,13 @@ import 'package:carwash/screens/welcome.dart';
 import 'package:carwash/screens/widgets/states.dart';
 import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/http_query.dart';
+import 'package:carwash/utils/logging.dart';
 import 'package:carwash/utils/prefs.dart';
 import 'package:carwash/utils/web_query.dart';
 import 'package:carwash/widgets/dialogs.dart';
 import 'package:carwash/widgets/loading.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
@@ -88,19 +91,17 @@ class AppModel {
   }
 
   Future<String> initModel() async {
-   // dialogController.add(1);
-    final loginResult = await WebHttpQuery('/engine/login.php').request({
-      'method': 3,
-      'sessionkey': prefs.string('passhash')
-    });
+    // dialogController.add(1);
+    final loginResult = await WebHttpQuery('/engine/login.php')
+        .request({'method': 3, 'sessionkey': prefs.string('passhash')});
     if (loginResult['status'] == 1) {
       login = true;
-      prefs.setInt("user_group", loginResult['data']['user']['f_group']);
+      prefs.setInt('user_group', loginResult['data']['user']['f_group']);
+      prefs.setInt('cashsession', loginResult['data']['cashsession']['f_id']);
     }
 
-    final queryResult = await WebHttpQuery('/engine/carwash/init-data.php').request({
-      'f_menu' : int.tryParse(prefs.string('menucode')) ?? 0
-    });
+    final queryResult = await WebHttpQuery('/engine/carwash/init-data.php')
+        .request({'f_menu': int.tryParse(prefs.string('menucode')) ?? 0});
     //Navigator.pop(Loading.dialogContext);
 
     if (queryResult['status'] == 1) {
@@ -116,9 +117,7 @@ class AppModel {
   String tr(String key) {
     if (!appdata.translation.containsKey(key)) {
       appdata.translation[key] = {'f_en': key, 'f_am': key, 'f_ru': key};
-      WebHttpQuery('/engine/carwash/unknown-tr.php').request({
-        'f_en': key
-      });
+      WebHttpQuery('/engine/carwash/unknown-tr.php').request({'f_en': key});
     }
     if (appdata.translation[key]!['f_am'].isEmpty) {
       return key;
@@ -127,26 +126,33 @@ class AppModel {
   }
 
   Future<void> tryLogin(String? pin) async {
-    final result = await WebHttpQuery('/engine/login.php').request({
-      'method':2,
-      'pin': pin ?? ''
-    });
+    final result = await WebHttpQuery('/engine/login.php')
+        .request({'method': 2, 'pin': pin ?? ''});
     if (result['status'] == 1) {
       login = true;
       prefs.setString('passhash', result['data']['sessionkey']);
       prefs.setInt('user_group', result['data']['user']['f_group']);
-      navHome();
+      prefs.setInt('cashsession', result['data']['cashsession']['f_id']);
+      if ((prefs.getInt('cashsession') ?? 0) > 0) {
+        navHome();
+      } else {
+        navCashSession();
+      }
     } else {
       dialogController.add(result['data']);
     }
   }
 
   void openMenu() {
-    BlocProvider.of<AppAnimateBloc>(prefs.context()).add(AppAnimateEventRaise());
+    BlocProvider.of<AppAnimateBloc>(prefs.context())
+        .add(AppAnimateEventRaise());
   }
 
   void navLogin() {
-    Navigator.pushAndRemoveUntil(prefs.context(), MaterialPageRoute(builder: (builder) => LoginScreen(this)), (route) =>false);
+    Navigator.pushAndRemoveUntil(
+        prefs.context(),
+        MaterialPageRoute(builder: (builder) => LoginScreen(this)),
+        (route) => false);
   }
 
   void navHome() {
@@ -154,10 +160,17 @@ class AppModel {
       Navigator.pushAndRemoveUntil(
           Prefs.navigatorKey.currentContext!,
           MaterialPageRoute(builder: (builder) => WelcomeScreen(this)),
-              (r) => false);
+          (r) => false);
     } else {
       navLogin();
     }
+  }
+
+  void navCashSession() {
+    Navigator.pushAndRemoveUntil(
+        Prefs.navigatorKey.currentContext!,
+        MaterialPageRoute(builder: (builder) => CashSession(this)),
+        (r) => false);
   }
 
   void navHelp() {
@@ -171,7 +184,8 @@ class AppModel {
     Dialogs.getPin().then((value) {
       if ((value ?? '') == '1981') {
         settingsServerAddressController.text = prefs.string('serveraddress');
-        settingsWebServerAddressController.text = prefs.string('webserveraddress');
+        settingsWebServerAddressController.text =
+            prefs.string('webserveraddress');
         menuCodeController.text = prefs.string('menucode');
         modeController.text = prefs.string('appmode');
         showUnpaidController.text = prefs.string('showunpaid');
@@ -196,14 +210,21 @@ class AppModel {
         MaterialPageRoute(builder: (builder) => CashdeskScreen(this)));
   }
 
+  void navHistory() {
+    Navigator.push(Prefs.navigatorKey.currentContext!,
+        MaterialPageRoute(builder: (builder) => HistoryScreen(this)));
+  }
+
   void navStatus() {
     Navigator.pop(prefs.context());
-    Navigator.push(prefs.context(), MaterialPageRoute(builder: (builder) => StatusScreen(this)));
+    Navigator.push(prefs.context(),
+        MaterialPageRoute(builder: (builder) => StatusScreen(this)));
   }
 
   void saveSettings() {
     prefs.setString('serveraddress', settingsServerAddressController.text);
-    prefs.setString('webserveraddress', settingsWebServerAddressController.text);
+    prefs.setString(
+        'webserveraddress', settingsWebServerAddressController.text);
     prefs.setString('menucode', menuCodeController.text);
     prefs.setString('appmode', modeController.text);
     prefs.setString('showunpaid', showUnpaidController.text);
@@ -257,12 +278,14 @@ class AppModel {
   }
 
   Future<void> removeOrder(Map<String, dynamic> data) async {
-    WebHttpQuery('/engine/carwash/remove-order.php').request(data).then((value) {
+    WebHttpQuery('/engine/carwash/remove-order.php')
+        .request(data)
+        .then((value) {
       getProcessList();
     });
   }
 
-  Future<void> changeStateOfProcess(Map<String,dynamic> data) async {
+  Future<void> changeStateOfProcess(Map<String, dynamic> data) async {
     WebHttpQuery('/engine/carwash/status.php').request(data).then((value) {
       getProcessList();
     });
@@ -291,37 +314,39 @@ class AppModel {
       a.remove('f_image');
       m.add(a);
     }
-    httpQuery(query_create_order,
-      {
-            'order': appdata.basketData,
-            'items': m,
-            'f_staff': 1,
-            'f_table': int.tryParse(prefs.string('table')) ?? 1,
-            'car_number': carNumberController.text
-
-    }, '/engine/carwash/create-order.php');
+    httpQuery(
+        query_create_order,
+        {
+          'order': appdata.basketData,
+          'items': m,
+          'f_staff': 1,
+          'f_amountcash':appdata.basketData['f_amountcash'],
+          'f_amountcard':appdata.basketData['f_amountcard'],
+          'f_amountidram':appdata.basketData['f_amountidram'],
+          'cashsession': prefs.getInt('cashsession') ?? 0,
+          'f_table': int.tryParse(prefs.string('table')) ?? 1,
+          'car_number': carNumberController.text
+        },
+        '/engine/carwash/create-order.php');
   }
 
   void getProcessList() async {
     basketController.add(null);
-    final queryResult = await WebHttpQuery('/engine/carwash/get-process-list.php').request({
-            'f_menu': int.tryParse(prefs.string('menucode')) ?? 0
-
-    });
+    final queryResult =
+        await WebHttpQuery('/engine/carwash/get-process-list.php')
+            .request({'f_menu': int.tryParse(prefs.string('menucode')) ?? 0});
     if (queryResult['status'] == 1) {
-      httpOk(query_get_process_list,
-          jsonDecode(queryResult['data'][0])['data']);
+      httpOk(
+          query_get_process_list, jsonDecode(queryResult['data'][0])['data']);
     } else {}
   }
 
   void startOrder(Map<String, dynamic> o) {
-    httpQuery(query_start_order,o, '/engine/carwash/start-order.php');
+    httpQuery(query_start_order, o, '/engine/carwash/start-order.php');
   }
 
   void changeState(Map<String, dynamic> o) async {
-    ProcessStates.show(o, this).then((value) {
-
-    });
+    ProcessStates.show(o, this).then((value) {});
   }
 
   void endOrder(Map<String, dynamic> o) {
@@ -361,6 +386,7 @@ class AppModel {
         break;
       case query_print_fiscal:
         appdata.basket.clear();
+        appdata.basketData.clear();
         carNumberController.clear();
         appdata.basketTotal();
         Dialogs.show(tr('Your order was created')).then((value) {
@@ -372,20 +398,27 @@ class AppModel {
         });
         break;
       case query_create_order:
+        Logging.write('Order created');
+        appdata.basketData['f_id'] = data['data'];
         if ((appdata.basketData['f_amountcash'] ?? 0) > 0 ||
             (appdata.basketData['f_amountcard'] ?? 0) > 0 ||
             (appdata.basketData['f_amountidram'] ?? 0) > 0) {
           if (prefs.string('serveraddress') != '-1') {
-            httpQuery2(
-                query_print_fiscal,
-                {
-                  'id': jsonDecode(data)["data"],
-                  'mode': printFiscal ? 1 : 0
-                },
+            Map<String,dynamic> dd = {};
+            if (data is String) {
+              dd.addAll(jsonDecode(data));
+            } else {
+              dd.addAll(data);
+            }
+            Logging.write('Order created, print fiscal $data route: ${HttpQuery2.printfiscal}');
+            httpQuery2(query_print_fiscal,
+                {'id': dd["data"],
+                  'mode': printFiscal ? 1 : 0},
                 route: HttpQuery2.printfiscal);
-
           } else {
+            Logging.write('Order created, no fiscal');
             appdata.basket.clear();
+            appdata.basketData.clear();
             carNumberController.clear();
             appdata.basketTotal();
             Dialogs.show(tr('Your order was created')).then((value) {
@@ -399,6 +432,7 @@ class AppModel {
           return;
         }
         appdata.basket.clear();
+        appdata.basketData.clear();
         carNumberController.clear();
         appdata.basketTotal();
         if (prefs.string('afterbaskettoorders') == '1') {
@@ -441,7 +475,8 @@ class AppModel {
     }
   }
 
-  Future<void> httpQuery(int code, Map<String, dynamic> params, String route) async {
+  Future<void> httpQuery(
+      int code, Map<String, dynamic> params, String route) async {
     dialogController.add(0);
     correctJson(params);
     final queryResult = await WebHttpQuery(route).request(params);
@@ -454,7 +489,8 @@ class AppModel {
   }
 
   Future<void> httpQuery2(int code, Map<String, dynamic> params,
-      {String route = HttpQuery2.networkdb}) async {
+      {String route = HttpQuery2.networkdb, VoidCallback? callback}) async {
+    Logging.write('model.httpQuery2');
     dialogController.add(0);
     Map<String, dynamic> copy = {};
     copy.addAll(params);
@@ -462,10 +498,16 @@ class AppModel {
       copy['params'] = <String, dynamic>{};
     }
     correctJson(copy['params']);
+    Logging.write('model.httpQuery2 afterCorrectJson');
     final queryResult = await HttpQuery2(route).request(copy);
+    Logging.write('model.httpQuery2 queryResult ${queryResult}' );
     Navigator.pop(Loading.dialogContext);
     if (queryResult['status'] == 1) {
-      httpOk(code, queryResult['data']);
+      if (callback == null) {
+        httpOk(code, queryResult['data']);
+      } else {
+        callback();
+      }
     } else {
       dialogController.add(queryResult['data']);
     }

@@ -7,23 +7,32 @@ class AppState extends Equatable {
   List<Object?> get props => [];
 }
 
-class AppStateLoading extends AppState {
-
-}
+class AppStateLoading extends AppState {}
 
 class AppStateFinish extends AppState {
   final dynamic data;
+
   AppStateFinish(this.data);
 }
 
 class AppStateCash extends AppStateFinish {
   AppStateCash(super.data);
+}
 
+class AppStateCashSession extends AppStateFinish {
+  AppStateCashSession(super.data);
 }
 
 class AppStateError extends AppState {
   final String error;
+
   AppStateError(this.error);
+}
+
+class AppStateClosed extends AppState {}
+
+class AppStateShifts extends AppStateFinish {
+  AppStateShifts(super.data);
 }
 
 class AppEvent extends Equatable {
@@ -34,17 +43,28 @@ class AppEvent extends Equatable {
 class AppEventQuery extends AppEvent {
   final dynamic data;
   final String route;
+
   AppEventQuery(this.route, this.data);
 }
 
 class AppEventQueryCash extends AppEventQuery {
   AppEventQueryCash(super.route, super.data);
+}
 
+class AppEventQueryOpenSession extends AppEventQuery {
+  AppEventQueryOpenSession(super.route, super.data);
 }
 
 class AppEventQueryRemoveFromCash extends AppEventQuery {
   AppEventQueryRemoveFromCash(super.route, super.data);
+}
 
+class AppEventQueryShift extends AppEventQuery {
+  AppEventQueryShift(super.route, super.data);
+}
+
+class AppEventChangePayment extends AppEventQuery {
+  AppEventChangePayment(super.route, super.data);
 }
 
 class AppEventQueryCloseDay extends AppEventQuery {
@@ -56,22 +76,20 @@ class AppAnimateState extends Equatable {
   List<Object?> get props => [];
 }
 
-class AppAnimateStateRaise extends AppAnimateState{}
+class AppAnimateStateRaise extends AppAnimateState {}
 
 class AppAnimateEvent extends Equatable {
   @override
   List<Object?> get props => [];
-
 }
 
-class AppAnimateEventRaise extends  AppAnimateEvent {}
+class AppAnimateEventRaise extends AppAnimateEvent {}
 
 class AppAnimateBloc extends Bloc<AppAnimateEvent, AppAnimateState> {
   AppAnimateBloc() : super(AppAnimateState()) {
     on<AppAnimateEvent>((event, emit) => emit(AppAnimateState()));
     on<AppAnimateEventRaise>((event, emit) => emit(AppAnimateStateRaise()));
   }
-
 }
 
 class AppBloc extends Bloc<AppEvent, AppState> {
@@ -81,14 +99,22 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<AppEventQueryCash>((event, emit) => query(event));
     on<AppEventQueryRemoveFromCash>((event, emit) => query(event));
     on<AppEventQueryCloseDay>((event, emit) => query(event));
+    on<AppEventQueryShift>((event, emit) => query(event));
+    on<AppEventChangePayment>((event, emit) =>   query(event));
   }
 
   Future<void> query(AppEventQuery e) async {
     emit(AppStateLoading());
     final result = await WebHttpQuery(e.route).request(e.data);
     if (result['status'] == 1) {
-      if (e is AppEventQueryCash || e is AppEventQueryRemoveFromCash || e is AppEventQueryCloseDay) {
+      if (e is AppEventQueryCash || e is AppEventQueryRemoveFromCash) {
         emit(AppStateCash(result['data']));
+      } else if (e is AppEventQueryCloseDay) {
+        emit(AppStateClosed());
+      } else if (e is AppEventQueryOpenSession) {
+        emit(AppStateCashSession(result));
+      } else if (e is AppEventQueryShift  || e is AppEventChangePayment) {
+        emit(AppStateShifts(result));
       } else {
         emit(AppStateFinish(result['data']));
       }
@@ -96,5 +122,4 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       emit(AppStateError(result['data']));
     }
   }
-
 }

@@ -42,7 +42,7 @@ class CashdeskModel {
   void refresh() {
     BlocProvider.of<AppBloc>(prefs.context()).add(AppEventQueryCash(
         '/engine/carwash/cashreport.php',
-        {'session': 1, 'date': prefs.dateStr(date)}));
+        {'session': prefs.getInt('cashsession') ?? 0, 'date': prefs.dateStr(date)}));
   }
 
   void newRow() {
@@ -90,7 +90,7 @@ class CashdeskModel {
         .add(QuestionEventRaise('Հաստատեք տողի հեռացումը \n ${d['f_remarks']} \n ${d['f_amount']}', () {
       BlocProvider.of<AppBloc>(prefs.context()).add(AppEventQueryRemoveFromCash(
           '/engine/cashdesk/remove-doc.php',
-          {'session':1,'refresh': 'carwashcashdesk', 'id': d['f_id']}));
+          {'session':prefs.getInt('cashsession') ?? 0,'refresh': 'carwashcashdesk', 'id': d['f_id']}));
     }, () {}));
   }
 
@@ -98,12 +98,12 @@ class CashdeskModel {
     BlocProvider.of<QuestionBloc>(prefs.context()).add(QuestionEventRaise('Փակել օրը՞', () {
       BlocProvider.of<AppBloc>(prefs.context()).add(AppEventQueryCloseDay('/engine/carwash/close-day.php',
           {
-            'session':1,'refresh': 'carwashcashdesk'
+            'session':prefs.getInt('cashsession') ?? 0,'refresh': 'carwashcashdesk'
           }));
     }, () { }));
   }
 
   double total(List<dynamic> t) {
-    return t.fold(0, (previousValue, element) => previousValue + (double.tryParse(element['f_amount']) ?? 0));
+    return t.fold(0, (previousValue, element) => previousValue + element['f_amount']);
   }
 }

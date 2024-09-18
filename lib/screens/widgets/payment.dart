@@ -1,5 +1,6 @@
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/utils/global.dart';
+import 'package:carwash/utils/kbd.dart';
 import 'package:carwash/widgets/text_form_field.dart';
 import 'package:flutter/material.dart';
 
@@ -45,6 +46,14 @@ class _Payment extends State<Payment> {
         Expanded(
             child: MTextFormField(
           controller: widget.model.carNumberController,
+          readOnly: true,
+          onTap: (){
+            Kbd.getText().then((v) {
+              if (v != null) {
+                widget.model.carNumberController.text = v;
+              }
+            });
+          },
           hintText: 'Պետհամարանիշ',
                 style:
                 const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)

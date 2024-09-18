@@ -109,6 +109,16 @@ extension WelcomeDesktop on WelcomeScreen {
                       model.navCashdesk();
                     },
                   )),
+              PopupMenuItem(
+                  child: ListTile(
+                    leading: const Icon(Icons.history_outlined),
+                    title: Text(model.tr('History')),
+                    onTap: () {
+                      BlocProvider.of<AppAnimateBloc>(prefs.context())
+                          .add(AppAnimateEvent());
+                      model.navHistory();
+                    },
+                  )),
               if ((prefs.getInt('user_group') ?? 0) == 1)
                 PopupMenuItem(
                     child: ListTile(

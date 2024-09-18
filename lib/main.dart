@@ -4,6 +4,7 @@ import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/app/question_bloc.dart';
 import 'package:carwash/screens/cashdesk.dart';
+import 'package:carwash/screens/cashsession.dart';
 import 'package:carwash/screens/login.dart';
 import 'package:carwash/screens/welcome.dart';
 import 'package:carwash/screens/widgets/dish_basket.dart';
@@ -31,15 +32,14 @@ void main() async {
     prefs.setString('pkAppName', appName);
     prefs.setString('pkAppVersion', '$version.$buildNumber');
   });
-  runApp(
-    MultiBlocProvider(providers: [
-      BlocProvider<AppAnimateBloc>(create: (context) => AppAnimateBloc()),
-      BlocProvider<AppBloc>(create: (context) => AppBloc()),
-      BlocProvider<CashBloc>(create: (context) => CashBloc()),
-      BlocProvider<QuestionBloc>(create: (context) => QuestionBloc()),
-      BlocProvider<CookingTimeBlok>(create: (context) => CookingTimeBlok(CookingTimeState()))
-    ], child: const App()));
-
+  runApp(MultiBlocProvider(providers: [
+    BlocProvider<AppAnimateBloc>(create: (context) => AppAnimateBloc()),
+    BlocProvider<AppBloc>(create: (context) => AppBloc()),
+    BlocProvider<CashBloc>(create: (context) => CashBloc()),
+    BlocProvider<QuestionBloc>(create: (context) => QuestionBloc()),
+    BlocProvider<CookingTimeBlok>(
+        create: (context) => CookingTimeBlok(CookingTimeState()))
+  ], child: const App()));
 }
 
 class App extends StatefulWidget {
@@ -71,7 +71,11 @@ class _App extends State<App> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: _appModel.login ? WelcomeScreen(_appModel..dialogController.add(error)) : LoginScreen(_appModel),
+      home: _appModel.login
+          ? ((prefs.getInt('cashsession') ?? 0) == 0
+              ? CashSession(_appModel)
+              : WelcomeScreen(_appModel..dialogController.add(error)))
+          : LoginScreen(_appModel),
     );
   }
 

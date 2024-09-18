@@ -3,6 +3,7 @@ import 'package:carwash/utils/prefs.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'dart:io' show Platform, stdout;
 
 
 class WebHttpQuery {
@@ -22,6 +23,8 @@ class WebHttpQuery {
     inData['apikey'] ='8eabcee4-f1bc-11ee-8b0f-021eaa527a65-a0d5c784-f1bc-11ee-8b0f-021eaa527a65';
     inData['config'] = prefs.string('config');
     inData['language'] = 'am';
+    inData['hostinfo'] = Platform.localHostname;
+    inData['cashsession'] = prefs.getInt('cashsession') ?? 0;
 
     Map<String, Object?> outData = {};
     String strBody = jsonEncode(inData);
