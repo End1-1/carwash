@@ -101,6 +101,8 @@ class _Payment extends State<Payment> {
                         widget.o['f_amountcard'] = 0;
                         widget.o['f_amountidram'] = 0;
                         widget.o['f_amountcard'] = widget.o['f_amounttotal'];
+                        widget.model.printFiscal = true;
+                        widget.model.fiscalController.add(null);
                         setState(() {});
                       },
                       style: (widget.o['f_amountcard'] ?? 0) > 0 ? s2 : s1,
@@ -120,6 +122,8 @@ class _Payment extends State<Payment> {
                         widget.o['f_amountcard'] = 0;
                         widget.o['f_amountidram'] = 0;
                         widget.o['f_amountidram'] = widget.o['f_amounttotal'];
+                        widget.model.printFiscal = true;
+                        widget.model.fiscalController.add(null);
                         setState(() {});
                       },
                       style: (widget.o['f_amountidram'] ?? 0) > 0 ? s2 : s1,
@@ -129,6 +133,8 @@ class _Payment extends State<Payment> {
               const SizedBox(
                 width: 5,
               ),
+
+              /*
               Expanded(
                   child: OutlinedButton(
                       onPressed: () {
@@ -151,6 +157,9 @@ class _Payment extends State<Payment> {
                                   (widget.o['f_amountcard'] ?? 0) == 0
                               ? t2
                               : t1))),
+
+
+               */
             ],
           ))
     ]);

@@ -397,6 +397,8 @@ class AppModel {
           }
         });
         break;
+      case query_print_bill:
+        break;
       case query_create_order:
         Logging.write('Order created');
         appdata.basketData['f_id'] = data['data'];
@@ -413,7 +415,7 @@ class AppModel {
             Logging.write('Order created, print fiscal $data route: ${HttpQuery2.printfiscal}');
             httpQuery2(query_print_fiscal,
                 {'id': dd["data"],
-                  'mode': printFiscal ? 1 : 0},
+                  'mode': printFiscal ? 1 : 0, 'debug_res':Prefs.debug_res},
                 route: HttpQuery2.printfiscal);
           } else {
             Logging.write('Order created, no fiscal');
@@ -516,5 +518,12 @@ class AppModel {
   void changeFiscalMode() {
     printFiscal = !printFiscal;
     fiscalController.add(null);
+    if (!printFiscal) {
+      appdata.basketData['f_amountcash'] = 0;
+      appdata.basketData['f_amountcard'] = 0;
+      appdata.basketData['f_amountidram'] = 0;
+      appdata.basketData['f_amountcash'] = appdata.basketData['f_amounttotal'];
+      basketController.add(null);
+    }
   }
 }

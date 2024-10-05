@@ -130,7 +130,7 @@ class CashdeskScreen extends AppScreen {
                                         e['f_remarks'], 14, true, Colors.redAccent),
                                     Styling.rowSpacingWidget(),
                                     Styling.textColor(
-                                        e['f_amount'], 14, true, Colors.redAccent),
+                                        '${e['f_amount']}', 14, true, Colors.redAccent),
                                     Expanded(child: Container()),
                                     IconButton(
                                         onPressed: () {

@@ -51,11 +51,12 @@ class HistoryScreen extends AppScreen {
 
       }
       if (state is AppStateShifts) {
+        final l =state.data['orders'] ?? [];
         return SingleChildScrollView(
           child: Column(
             children: [
-              for (final e in state.data['orders'] ?? [])...[
-                _oneRow(e),
+              for (int i =0; i<l.length; i++)...[
+                _oneRow(l[i], i),
                 Divider(),
               ]
             ],
@@ -66,10 +67,11 @@ class HistoryScreen extends AppScreen {
     });
   }
 
-  Widget _oneRow(dynamic d) {
+  Widget _oneRow(dynamic d, int  row) {
     const ts = const TextStyle(fontSize: 20);
     return Row(
       children: [
+      SizedBox(width: 80, child: Text('${row+1}', style: ts)),
       SizedBox(width: 100, child: Text(d['f_govnumber'], style: ts)),
       SizedBox(width: 100, child: Text(d['f_hallid'], style: ts)),
       SizedBox(width: 100, child: Text(d['f_timeclose'], style: ts)),
@@ -80,6 +82,9 @@ class HistoryScreen extends AppScreen {
       InkWell(onTap:(){
         printFiscal(d);
       }, child:SizedBox(width: 100, height: 30, child: Image.asset(d['f_fiscal'] > 0 ? 'assets/icons/basketball.png' : 'assets/icons/football.png'))),
+        InkWell(onTap:(){
+          printBill(d);
+        }, child:const SizedBox(width: 100, height: 30, child: Icon(Icons.print_outlined, color: Colors.blue))),
       ],
     );
   }

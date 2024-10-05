@@ -40,11 +40,26 @@ extension HistoryE on HistoryScreen {
         '${model.tr('Print fiscal')}\r\n ${d['f_amounttotal']} ${nameOfPayment(d)}',
         () {
       model.httpQuery2(
-          AppModel.query_print_fiscal, {'id': d['f_id'], 'mode': 1},
+          AppModel.query_print_fiscal, {'id': d['f_id'], 'mode': 1, 'debug_res': Prefs.debug_res},
           route: HttpQuery2.printfiscal, callback: () {
         go(_model.shiftId);
       });
     }, () {}));
+  }
+
+  void printBill(dynamic d) {
+    if (d['f_fiscal'] > 0) {
+      return;
+    }
+    BlocProvider.of<QuestionBloc>(prefs.context()).add(QuestionEventRaise(
+        model.tr('Reprint bill'),
+            () {
+          model.httpQuery2(
+              AppModel.query_print_bill, {'id': d['f_id'], 'mode': 1, 'debug_res': Prefs.debug_res},
+              route: HttpQuery2.printbill, callback: () {
+            go(_model.shiftId);
+          });
+        }, () {}));
   }
 
   void changePayment(dynamic d) {

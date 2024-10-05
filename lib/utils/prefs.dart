@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 extension Prefs on SharedPreferences {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+  static const debug_res = 143;
+
   String string(String key) {
     return getString(key) ?? '';
   }

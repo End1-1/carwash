@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 class HttpQuery2 {
   static const String networkdb = 'networkdb';
   static const String printfiscal = 'printfiscal';
+  static const String printbill= 'printbill';
 
   final String route;
   HttpQuery2(this.route);
@@ -15,6 +16,7 @@ class HttpQuery2 {
     if (inData['params'] == null) {
       inData['params'] = <String, dynamic>{};
     }
+    inData['key'] = 'asd666649888d!!jjdjmskkak98983mj???m';
     inData['params']!['apikey'] = prefs.string("apikey");
     inData['config'] = prefs.string('config');
     inData['language'] = 'am';
