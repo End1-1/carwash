@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/app/question_bloc.dart';
@@ -24,21 +26,27 @@ class HistoryScreen extends AppScreen {
       backgroundColor: Colors.green,
       toolbarHeight: kToolbarHeight,
       title: Text(prefs.appTitle()),
-
       actions: [
         Expanded(child: Container()),
-        IconButton(onPressed: goBack, icon: const Icon(Icons.arrow_circle_left_outlined)),
-        Container(alignment: Alignment.center, width: 300, child: BlocBuilder<AppBloc, AppState>(builder: (context, state) {
-          if (state  is AppStateLoading) {
-            return const Icon(Icons.timelapse);
-          }
-          if (state is AppStateShifts) {
-            _model.shiftId  = state.data['data']['f_id'];
-            _model.shiftName = state.data['data']['f_open'];
-          }
-          return Text('${_model.shiftId}, ${_model.shiftName}');
-        })),
-        IconButton(onPressed: goForward, icon: const Icon(Icons.arrow_circle_right_outlined)),
+        IconButton(
+            onPressed: goBack,
+            icon: const Icon(Icons.arrow_circle_left_outlined)),
+        Container(
+            alignment: Alignment.center,
+            width: 300,
+            child: BlocBuilder<AppBloc, AppState>(builder: (context, state) {
+              if (state is AppStateLoading) {
+                return const Icon(Icons.timelapse);
+              }
+              if (state is AppStateShifts) {
+                _model.shiftId = state.data['data']['f_id'];
+                _model.shiftName = state.data['data']['f_open'];
+              }
+              return Text('${_model.shiftId}, ${_model.shiftName}');
+            })),
+        IconButton(
+            onPressed: goForward,
+            icon: const Icon(Icons.arrow_circle_right_outlined)),
         Expanded(child: Container())
       ],
     );
@@ -46,16 +54,14 @@ class HistoryScreen extends AppScreen {
 
   @override
   Widget body() {
-    return BlocBuilder<AppBloc,AppState>(builder:(context, state){
-      if (state is AppStateLoading) {
-
-      }
+    return BlocBuilder<AppBloc, AppState>(builder: (context, state) {
+      if (state is AppStateLoading) {}
       if (state is AppStateShifts) {
-        final l =state.data['orders'] ?? [];
+        final l = state.data['orders'] ?? [];
         return SingleChildScrollView(
           child: Column(
             children: [
-              for (int i =0; i<l.length; i++)...[
+              for (int i = 0; i < l.length; i++) ...[
                 _oneRow(l[i], i),
                 Divider(),
               ]
@@ -67,26 +73,40 @@ class HistoryScreen extends AppScreen {
     });
   }
 
-  Widget _oneRow(dynamic d, int  row) {
+  Widget _oneRow(dynamic d, int row) {
     const ts = const TextStyle(fontSize: 20);
     return Row(
       children: [
-      SizedBox(width: 80, child: Text('${row+1}', style: ts)),
-      SizedBox(width: 100, child: Text(d['f_govnumber'], style: ts)),
-      SizedBox(width: 100, child: Text(d['f_hallid'], style: ts)),
-      SizedBox(width: 100, child: Text(d['f_timeclose'], style: ts)),
-      SizedBox(width: 100, child: Text('${d['f_amounttotal']}', style: ts)),
-      InkWell(onTap:(){
-        changePayment(d);
-      }, child:SizedBox(width: 100, child: Text(nameOfPayment(d), style: ts))),
-      InkWell(onTap:(){
-        printFiscal(d);
-      }, child:SizedBox(width: 100, height: 30, child: Image.asset(d['f_fiscal'] > 0 ? 'assets/icons/basketball.png' : 'assets/icons/football.png'))),
-        InkWell(onTap:(){
-          printBill(d);
-        }, child:const SizedBox(width: 100, height: 30, child: Icon(Icons.print_outlined, color: Colors.blue))),
+        SizedBox(width: 80, child: Text('${row + 1}', style: ts)),
+        SizedBox(width: 100, child: Text(d['f_govnumber'], style: ts)),
+        SizedBox(width: 100, child: Text(d['f_hallid'], style: ts)),
+        SizedBox(width: 100, child: Text(d['f_timeclose'], style: ts)),
+        SizedBox(width: 100, child: Text('${d['f_amounttotal']}', style: ts)),
+        InkWell(
+            onTap: () {
+              changePayment(d);
+            },
+            child:
+                SizedBox(width: 100, child: Text(nameOfPayment(d), style: ts))),
+        InkWell(
+            onTap: () {
+              printFiscal(d);
+            },
+            child: SizedBox(
+                width: 100,
+                height: 30,
+                child: Image.asset(d['f_fiscal'] > 0
+                    ? 'assets/icons/basketball.png'
+                    : 'assets/icons/football.png'))),
+        InkWell(
+            onTap: () {
+              printBill(d);
+            },
+            child: const SizedBox(
+                width: 100,
+                height: 30,
+                child: Icon(Icons.print_outlined, color: Colors.blue))),
       ],
     );
   }
-
 }

@@ -1,0 +1,8 @@
+{
+  "printFiscalFailed": "Print fiscal failed",
+  "checkConnectionWithFiscalMachine": "Check connection with fiscal machine",
+  "loading": "Loading",
+  "printingFiscal": "Printing fiscal",
+  "printingBill": "Printing bill",
+  "printBillFailed": "Print bill failed"
+}

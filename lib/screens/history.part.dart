@@ -39,26 +39,37 @@ extension HistoryE on HistoryScreen {
     BlocProvider.of<QuestionBloc>(prefs.context()).add(QuestionEventRaise(
         '${model.tr('Print fiscal')}\r\n ${d['f_amounttotal']} ${nameOfPayment(d)}',
         () {
-      model.httpQuery2(
-          AppModel.query_print_fiscal, {'id': d['f_id'], 'mode': 1, 'debug_res': Prefs.debug_res},
-          route: HttpQuery2.printfiscal, callback: () {
-        go(_model.shiftId);
-      });
+
+          final jsonMsg = <String,dynamic>{};
+          jsonMsg['command'] = 'fiscal';
+          jsonMsg['handler'] = 'fiscal';
+          jsonMsg['key'] = "asdf7fa8kk49888d!!jjdjmskkak98983mj???m";
+          jsonMsg['order'] =  d['f_id'];
+          model.dialogController.add(1);
+          model.appWebsocket.sendMessage(jsonEncode(jsonMsg), (json) { model.printFiscalResponse(json);go(_model.shiftId);});
+
     }, () {}));
   }
 
   void printBill(dynamic d) {
-    if (d['f_fiscal'] > 0) {
-      return;
-    }
+
     BlocProvider.of<QuestionBloc>(prefs.context()).add(QuestionEventRaise(
         model.tr('Reprint bill'),
             () {
-          model.httpQuery2(
-              AppModel.query_print_bill, {'id': d['f_id'], 'mode': 1, 'debug_res': Prefs.debug_res},
-              route: HttpQuery2.printbill, callback: () {
-            go(_model.shiftId);
-          });
+
+              final jsonMsg = <String,dynamic>{};
+              jsonMsg['command'] = 'fiscal';
+              jsonMsg['handler'] = 'printbill';
+              jsonMsg['key'] = "asdf7fa8kk49888d!!jjdjmskkak98983mj???m";
+              jsonMsg['order'] =  d['f_id'];
+              model.dialogController.add(2);
+              model.appWebsocket.sendMessage(jsonEncode(jsonMsg), (json) { model.printBillResponse(json);go(_model.shiftId);});
+
+          // model.httpQuery2(
+          //     AppModel.query_print_bill, {'id': d['f_id'], 'mode': 1, 'debug_res': Prefs.debug_res},
+          //     route: HttpQuery2.printbill, callback: () {
+          //   go(_model.shiftId);
+          //});
         }, () {}));
   }
 
@@ -99,10 +110,10 @@ extension HistoryE on HistoryScreen {
   }
 
   String nameOfPayment(dynamic d) {
-    if (d['f_amountcard'] > 0) {
+    if ((d['f_amountcard'] ?? 0) > 0) {
       return model.tr('Card');
     }
-    if (d['f_amountidram'] > 0) {
+    if ((d['f_amountidram'] ?? 0) > 0) {
       return model.tr('Idram');
     }
     return model.tr('Cash');

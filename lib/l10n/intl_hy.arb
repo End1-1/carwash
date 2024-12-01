@@ -1,0 +1,8 @@
+{
+  "printFiscalFailed": "ՀԴՄ չի տպվել",
+  "checkConnectionWithFiscalMachine": "Ստուգեք կապը ՀԴՄ սարքի հետ",
+  "loading": "Հարցում",
+  "printingFiscal": "ՀԴՄ կտրոնի տպում",
+  "printingBill": "Հաշվի տպում",
+  "printBillFailed": "Հաշիվը չտպվեց"
+}

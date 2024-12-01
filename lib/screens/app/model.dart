@@ -16,6 +16,7 @@ import 'package:carwash/screens/process_end.dart';
 import 'package:carwash/screens/settings.dart';
 import 'package:carwash/screens/welcome.dart';
 import 'package:carwash/screens/widgets/states.dart';
+import 'package:carwash/utils/app_websocket.dart';
 import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/http_query.dart';
 import 'package:carwash/utils/logging.dart';
@@ -23,10 +24,11 @@ import 'package:carwash/utils/prefs.dart';
 import 'package:carwash/utils/web_query.dart';
 import 'package:carwash/widgets/dialogs.dart';
 import 'package:carwash/widgets/loading.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../status.dart';
 import 'data.dart';
@@ -61,6 +63,8 @@ class AppModel {
   final dialogController = StreamController();
   final fiscalController = StreamController.broadcast();
 
+  final AppWebSocket appWebsocket = AppWebSocket();
+  final loadingDialogMessages = <int, String>{};
   late final Data appdata;
 
   Size? screenSize;
@@ -72,7 +76,7 @@ class AppModel {
     appdata = Data(this);
     dialogController.stream.listen((event) {
       if (event is int) {
-        Loading.show();
+        Loading.show(loadingDialogMessages[event] ?? locale().loading);
       } else if (event is String) {
         if (event.isEmpty) {
           return;
@@ -92,6 +96,9 @@ class AppModel {
 
   Future<String> initModel() async {
     // dialogController.add(1);
+    loadingDialogMessages[0] = locale().loading;
+    loadingDialogMessages[1] = locale().printingFiscal;
+    loadingDialogMessages[2] = locale().printingBill;
     final loginResult = await WebHttpQuery('/engine/login.php')
         .request({'method': 3, 'sessionkey': prefs.string('passhash')});
     if (loginResult['status'] == 1) {
@@ -183,7 +190,7 @@ class AppModel {
   void navSettings() {
     Dialogs.getPin().then((value) {
       if ((value ?? '') == '1981') {
-        settingsServerAddressController.text = prefs.string('serveraddress');
+        settingsServerAddressController.text = prefs.string('websocket');
         settingsWebServerAddressController.text =
             prefs.string('webserveraddress');
         menuCodeController.text = prefs.string('menucode');
@@ -222,7 +229,7 @@ class AppModel {
   }
 
   void saveSettings() {
-    prefs.setString('serveraddress', settingsServerAddressController.text);
+    prefs.setString('websocket', settingsServerAddressController.text);
     prefs.setString(
         'webserveraddress', settingsWebServerAddressController.text);
     prefs.setString('menucode', menuCodeController.text);
@@ -275,6 +282,10 @@ class AppModel {
 
   void closeErrorDialog() {
     BlocProvider.of<AppBloc>(prefs.context()).add(AppEvent());
+  }
+
+  AppLocalizations locale() {
+    return AppLocalizations.of(prefs.context())!;
   }
 
   Future<void> removeOrder(Map<String, dynamic> data) async {
@@ -398,52 +409,43 @@ class AppModel {
         });
         break;
       case query_print_bill:
+        if (kDebugMode) {
+          print('PRINTING BILL');
+        }
         break;
       case query_create_order:
-        Logging.write('Order created');
-        appdata.basketData['f_id'] = data['data'];
-        if ((appdata.basketData['f_amountcash'] ?? 0) > 0 ||
-            (appdata.basketData['f_amountcard'] ?? 0) > 0 ||
-            (appdata.basketData['f_amountidram'] ?? 0) > 0) {
-          if (prefs.string('serveraddress') != '-1') {
-            Map<String,dynamic> dd = {};
-            if (data is String) {
-              dd.addAll(jsonDecode(data));
-            } else {
-              dd.addAll(data);
-            }
-            Logging.write('Order created, print fiscal $data route: ${HttpQuery2.printfiscal}');
-            httpQuery2(query_print_fiscal,
-                {'id': dd["data"],
-                  'mode': printFiscal ? 1 : 0, 'debug_res':Prefs.debug_res},
-                route: HttpQuery2.printfiscal);
-          } else {
-            Logging.write('Order created, no fiscal');
-            appdata.basket.clear();
-            appdata.basketData.clear();
-            carNumberController.clear();
-            appdata.basketTotal();
-            Dialogs.show(tr('Your order was created')).then((value) {
-              if (prefs.string('afterbaskettoorders') == '1') {
-                navProcess();
-              } else {
-                navHome();
-              }
-            });
-          }
-          return;
-        }
+
         appdata.basket.clear();
         appdata.basketData.clear();
         carNumberController.clear();
         appdata.basketTotal();
-        if (prefs.string('afterbaskettoorders') == '1') {
-          navProcess();
+        basketController.add(null);
+
+        Map<String,dynamic> dd = {};
+        if (data is String) {
+          dd.addAll(jsonDecode(data));
         } else {
-          navHome();
+          dd.addAll(data);
         }
-        Dialogs.show(tr('Your order was created'));
-        break;
+        if (printFiscal) {
+          final jsonMsg = <String,dynamic>{};
+          jsonMsg['command'] = 'fiscal';
+          jsonMsg['handler'] = 'fiscal';
+          jsonMsg['debug_fiscal_ok'] = true;
+          jsonMsg['key'] = "asdf7fa8kk49888d!!jjdjmskkak98983mj???m";
+          jsonMsg['order'] = dd['data'];
+          dialogController.add(1);
+          appWebsocket.sendMessage(jsonEncode(jsonMsg), printFiscalResponse);
+        } else {
+          final jsonMsg = <String,dynamic>{};
+          jsonMsg['command'] = 'fiscal';
+          jsonMsg['handler'] = 'printbill';
+          jsonMsg['key'] = "asdf7fa8kk49888d!!jjdjmskkak98983mj???m";
+          jsonMsg['order'] =  dd['data'];
+          dialogController.add(2);
+          appWebsocket.sendMessage(jsonEncode(jsonMsg), printBillResponse);
+        }
+          break;
       case query_get_process_list:
         appdata.works.clear();
         for (final e in data) {
@@ -458,6 +460,35 @@ class AppModel {
       case query_start_order:
         getProcessList();
         break;
+    }
+  }
+
+  void printFiscalResponse(Map<String, dynamic> json){
+    Navigator.pop(Loading.dialogContext);
+    if (json['errorCode'] != 0) {
+      if (json['errorCode'] == -5) {
+        json['errorMessage'] = locale().checkConnectionWithFiscalMachine;
+      }
+      dialogController.add('${locale().printFiscalFailed} \r\n ${json['errorMessage']}');
+      return;
+    }
+    Future.delayed(const Duration(seconds: 1), () {
+      final jsonMsg = <String,dynamic>{};
+      jsonMsg['command'] = 'fiscal';
+      jsonMsg['handler'] = 'printbill';
+      jsonMsg['key'] = "asdf7fa8kk49888d!!jjdjmskkak98983mj???m";
+      jsonMsg['order'] =  json['order'];
+      dialogController.add(2);
+      appWebsocket.sendMessage(jsonEncode(jsonMsg), printBillResponse);
+    });
+
+  }
+
+  void printBillResponse(Map<String, dynamic> json) {
+    Navigator.pop(Loading.dialogContext);
+    if (json['errorCode'] != 0) {
+      dialogController.add('${locale().printBillFailed} \r\n ${json['errorMessage']}');
+      return;
     }
   }
 
@@ -500,9 +531,7 @@ class AppModel {
       copy['params'] = <String, dynamic>{};
     }
     correctJson(copy['params']);
-    Logging.write('model.httpQuery2 afterCorrectJson');
     final queryResult = await HttpQuery2(route).request(copy);
-    Logging.write('model.httpQuery2 queryResult ${queryResult}' );
     Navigator.pop(Loading.dialogContext);
     if (queryResult['status'] == 1) {
       if (callback == null) {
