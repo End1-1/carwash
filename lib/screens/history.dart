@@ -55,7 +55,6 @@ class HistoryScreen extends AppScreen {
   @override
   Widget body() {
     return BlocBuilder<AppBloc, AppState>(builder: (context, state) {
-      if (state is AppStateLoading) {}
       if (state is AppStateShifts) {
         final l = state.data['orders'] ?? [];
         return SingleChildScrollView(

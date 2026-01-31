@@ -11,7 +11,7 @@ import 'package:carwash/utils/web_query.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:carwash/l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -100,7 +100,9 @@ class _App extends State<App> {
         }
       });
     } else {
+      prefs.setString("serveraddress", "carwash.picassocloud.com");
       if (prefs.string("serveraddress").isEmpty) {
+        _isInit = true;
         FlutterNativeSplash.remove();
         return;
       }

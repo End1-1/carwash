@@ -36,6 +36,9 @@ class AppWebSocket {
     }
     _setConnectionState(ConnectionStateType.connecting);
     try {
+      if (_host.isEmpty) {
+        _host="ws://127.0.0.1";
+      }
       _channel = WebSocketChannel.connect(Uri.parse(_host));
       _channel?.stream.listen(_handleMessage, onError: (e) {
         if (kDebugMode) {
