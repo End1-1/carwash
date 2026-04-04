@@ -11,7 +11,7 @@ class LoginScreen extends AppScreen {
   PreferredSizeWidget appBar() {
     return AppBar(
       centerTitle: true,
-      title: Text(model.tr('Login')),
+      title: Text(model.locale().login),
     );
   }
 

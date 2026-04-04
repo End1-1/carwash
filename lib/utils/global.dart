@@ -50,6 +50,35 @@ DateTime strToDateTime(String dateTime) {
   return DateFormat('yyyy-MM-dd HH:mm:ss').parse(dateTime);
 }
 
+/// JSON / MySQL могут отдать id как int, [num] или String — сравнивать через это.
+int? idVal(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  return int.tryParse(v.toString());
+}
+
+bool idEq(dynamic a, dynamic b) => idVal(a) == idVal(b);
+
+/// Backend JSON may encode [progress] as int, [num], or String (e.g. `"2"`).
+int orderProgress(Map<String, dynamic> o) {
+  final p = o['progress'];
+  if (p == null) return 0;
+  if (p is int) return p;
+  if (p is num) return p.toInt();
+  return int.tryParse(p.toString()) ?? 0;
+}
+
+int washMinutesSince(Map<String, dynamic> o) {
+  final wd = o['f_washdate'];
+  if (wd == null || wd.toString().isEmpty) return 0;
+  try {
+    return DateTime.now().difference(strToDateTime(wd.toString())).inMinutes;
+  } catch (_) {
+    return 0;
+  }
+}
+
 String dateTimeToStr(DateTime dateTime) {
   return DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
 }

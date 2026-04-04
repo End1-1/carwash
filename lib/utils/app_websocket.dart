@@ -37,7 +37,11 @@ class AppWebSocket {
     _setConnectionState(ConnectionStateType.connecting);
     try {
       if (_host.isEmpty) {
-        _host="ws://127.0.0.1";
+        if (kDebugMode) {
+          print('Hostname is empty, trying reconnect after timeout');
+          _reconnect();
+          return;
+        }
       }
       _channel = WebSocketChannel.connect(Uri.parse(_host));
       _channel?.stream.listen(_handleMessage, onError: (e) {

@@ -22,7 +22,7 @@ extension WelcomeDesktop on WelcomeScreen {
           for (final p1 in model.appdata.part1List()) ...[
             SizedBox(
                 width: 30,
-                child: p1['f_id'] == model.appdata.part1filter ?
+                child: idEq(p1['f_id'], model.appdata.part1filter) ?
                 Image.asset('assets/icons/finger.png')
                     : Container()),
             InkWell(
@@ -32,7 +32,7 @@ extension WelcomeDesktop on WelcomeScreen {
                 child: Container(
                     decoration: const BoxDecoration(
                     ),
-                    child: Text(p1['f_name'],
+                    child: Text((Map<String, dynamic>.from(p1)['f_name']),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold)))),
@@ -51,38 +51,7 @@ extension WelcomeDesktop on WelcomeScreen {
             ),
             child: Text(prefs.string('table'),
                 style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-        IconButton(
-            onPressed: model.navProcess, icon: const Icon(Icons.monitor)),
-        IconButton(
-            onPressed: model.navBasket,
-            icon: SizedBox(
-                width: 24,
-                height: 24,
-                child: Stack(alignment: Alignment.center, children: [
-                  const Icon(Icons.shopping_basket_outlined),
-                  StreamBuilder(
-                      stream: model.basketController.stream,
-                      builder: (builder, snapshot) {
-                        if (model.appdata.basket.isEmpty) {
-                          return Container();
-                        }
-                        return Align(
-                            alignment: Alignment.topRight,
-                            child: Container(
-                                width: 16,
-                                height: 16,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(10)),
-                                child: Text('${model.appdata.basket.length}',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold))));
-                      })
-                ]))),
+
         PopupMenuButton(
           icon: const Icon(Icons.settings_outlined),
           itemBuilder: (BuildContext context) {
@@ -90,19 +59,13 @@ extension WelcomeDesktop on WelcomeScreen {
               PopupMenuItem(
                   child: ListTile(
                     leading: const Icon(Icons.settings_outlined),
-                    title: Text(model.tr('Options')),
+                    title: Text(model.locale().options),
                     onTap: model.navSettings,
                   )),
               PopupMenuItem(
                   child: ListTile(
                     leading: const Icon(Icons.monitor),
-                    title: Text(model.tr('Process')),
-                    onTap: model.navProcess,
-                  )),
-              PopupMenuItem(
-                  child: ListTile(
-                    leading: const Icon(Icons.monitor),
-                    title: Text(model.tr('Cashdesk')),
+                    title: Text(model.locale().cashdesk),
                     onTap: () {
                       BlocProvider.of<AppAnimateBloc>(prefs.context())
                           .add(AppAnimateEvent());
@@ -112,7 +75,7 @@ extension WelcomeDesktop on WelcomeScreen {
               PopupMenuItem(
                   child: ListTile(
                     leading: const Icon(Icons.history_outlined),
-                    title: Text(model.tr('History')),
+                    title: Text(model.locale().history),
                     onTap: () {
                       BlocProvider.of<AppAnimateBloc>(prefs.context())
                           .add(AppAnimateEvent());
@@ -123,7 +86,7 @@ extension WelcomeDesktop on WelcomeScreen {
                 PopupMenuItem(
                     child: ListTile(
                       leading: const Icon(Icons.request_page_outlined),
-                      title: Text(model.tr('Carwash status')),
+                      title: Text(model.locale().carwashStatus),
                       onTap: () {
                         BlocProvider.of<AppAnimateBloc>(prefs.context())
                             .add(AppAnimateEvent());
@@ -133,7 +96,7 @@ extension WelcomeDesktop on WelcomeScreen {
               PopupMenuItem(
                   child: ListTile(
                     leading: const Icon(Icons.logout),
-                    title: Text(model.tr('Logout')),
+                    title: Text(model.locale().logout),
                     onTap: () {
                       prefs.setString('passhash', '');
                       model.navLogin();
@@ -190,8 +153,8 @@ extension WelcomeDesktop on WelcomeScreen {
                                 direction: Axis.horizontal,
                                 children: [
                                   for (final e in model.appdata.dish) ...[
-                                    if (e['f_part'] ==
-                                        model.appdata.part2filter)
+                                    if (idEq(e['f_part'],
+                                        model.appdata.part2filter))
                                       Dish(e, model)
                                   ]
                                 ],
@@ -230,7 +193,8 @@ extension WelcomeDesktop on WelcomeScreen {
                                 alignment: Alignment.center,
                                 child: globalOutlinedButton(
                                     onPressed: model.processOrder,
-                                    title: model.tr('Order'))),
+                                    title: model.locale().order),
+                                  ),
                           const SizedBox(
                             height: 5,
                           )

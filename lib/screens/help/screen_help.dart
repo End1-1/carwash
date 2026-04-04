@@ -1,5 +1,4 @@
 import 'package:carwash/screens/app/screen.dart';
-import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/prefs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
@@ -18,38 +17,7 @@ class ScreenHelp extends AppScreen {
       backgroundColor: Colors.green,
       toolbarHeight: kToolbarHeight,
       title: Text(prefs.appTitle()),
-      actions: [
-        IconButton(
-            onPressed: model.navBasket,
-            icon: SizedBox(
-                width: 24,
-                height: 24,
-                child: Stack(alignment: Alignment.center, children: [
-                  const Icon(Icons.shopping_basket_outlined),
-                  StreamBuilder(
-                      stream: model.basketController.stream,
-                      builder: (builder, snapshot) {
-                        if (model.appdata.basket.isEmpty) {
-                          return Container();
-                        }
-                        return Align(
-                            alignment: Alignment.topRight,
-                            child: Container(
-                                width: 16,
-                                height: 16,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(10)),
-                                child: Text('${model.appdata.basket.length}',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold))));
-                      })
-                ])))
-      ],
+      actions: const [],
     );
   }
 

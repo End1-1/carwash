@@ -1,0 +1,795 @@
+/*
+ * Colors aligned with Flutter carwash UI:
+ * - process.dart AppBar / screens: Colors.green (#4CAF50)
+ * - process.dart stripe: Color(0xff004779)
+ * - process.desktop.dart: Colors.blueAccent→Colors.blue, Colors.deepOrange→Colors.orange,
+ *   column fills Colors.blue / Colors.orange
+ * - Order tiles: Color(0xff94a5ba) / Color(0xffaaeeaa), text Colors.black
+ * Material refs: green #4CAF50, blue #2196F3, blueAccent #448AFF, orange #FF9800, deepOrange #FF5722
+ */
+:root {
+  --flutter-green: #4caf50;
+  --flutter-blue-accent: #448aff;
+  --flutter-blue: #2196f3;
+  --flutter-deep-orange: #ff5722;
+  --flutter-orange: #ff9800;
+  --flutter-navy: #004779;
+  --flutter-tile-muted: #94a5ba;
+  --flutter-tile-active: #aaeeaa;
+  --flutter-white: #ffffff;
+  --flutter-black: #000000;
+  --flutter-dialog: #ffffff;
+  --flutter-on-surface: #212121;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  background: var(--flutter-navy);
+  color: var(--flutter-white);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* AppBar: Colors.green */
+.topbar {
+  height: 72px;
+  padding: 10px 16px;
+  background: var(--flutter-green);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--flutter-white);
+}
+
+.topbar h1 {
+  color: var(--flutter-white);
+}
+
+.status-line {
+  min-height: 24px;
+  padding: 4px 10px;
+  font-size: 14px;
+  color: var(--flutter-white);
+  background: rgba(0, 0, 0, 0.26);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand,
+.meta,
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 0.5px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.brand-icon,
+.meta-icon,
+.card-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.btn-refresh-top {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--flutter-white);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btn-refresh-top:active {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px;
+}
+
+/* Left column ≈ process in-progress (blue) */
+.layout > .card:first-child {
+  min-height: 0;
+  background: var(--flutter-blue);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout > .card:first-child .card-head {
+  padding: 10px 12px;
+  background: linear-gradient(
+    to bottom,
+    var(--flutter-blue-accent),
+    var(--flutter-blue)
+  );
+  border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+  color: var(--flutter-white);
+}
+
+.layout > .card:first-child .card-head h2 {
+  color: var(--flutter-white);
+}
+
+.layout > .card:first-child .list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px;
+  background: var(--flutter-blue);
+}
+
+/* Right column ≈ pending (orange) */
+.layout > .card:nth-child(2) {
+  min-height: 0;
+  background: var(--flutter-orange);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout > .card:nth-child(2) .card-head {
+  padding: 10px 12px;
+  background: linear-gradient(
+    to bottom,
+    var(--flutter-deep-orange),
+    var(--flutter-orange)
+  );
+  border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+  color: var(--flutter-white);
+}
+
+.layout > .card:nth-child(2) .card-head h2 {
+  color: var(--flutter-white);
+}
+
+.layout > .card:nth-child(2) .list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px;
+  background: var(--flutter-orange);
+}
+
+/* Order rows: same fill as process.dart / bigPendingWidget */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  border-bottom: 2px solid var(--flutter-white);
+}
+
+.status-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.layout > .card:first-child .row-inprog-wash {
+  background: var(--flutter-tile-muted);
+  color: var(--flutter-black);
+}
+
+.layout > .card:first-child .row-inprog-ok {
+  background: var(--flutter-tile-active);
+  color: var(--flutter-black);
+}
+
+.layout > .card:nth-child(2) .row-pending {
+  background: var(--flutter-tile-muted);
+  color: var(--flutter-black);
+}
+
+.layout > .card:first-child .row .number,
+.layout > .card:first-child .row .service,
+.layout > .card:first-child .row .table,
+.layout > .card:first-child .row .time,
+.layout > .card:nth-child(2) .row .number,
+.layout > .card:nth-child(2) .row .service,
+.layout > .card:nth-child(2) .row .table,
+.layout > .card:nth-child(2) .row .time {
+  color: var(--flutter-black);
+}
+
+.layout > .card:nth-child(2) .row .service {
+  color: var(--flutter-black);
+  opacity: 0.95;
+}
+
+.row-clickable {
+  cursor: pointer;
+}
+
+.row-clickable:focus {
+  outline: 2px solid var(--flutter-white);
+  outline-offset: 2px;
+}
+
+/*
+ * Долго в «выполнено» (3/4): пульс фона + внутренняя рамка.
+ * Без filter/внешнего glow — в Chrome + overflow:hidden на .list надёжнее.
+ * Важно: при prefers-reduced-motion раньше стояло animation:none + статичная рамка —
+ * в Chrome/Windows это давало только «толстую оранжевую линию» без мигания.
+ */
+@keyframes row-blink-done34 {
+  0%,
+  100% {
+    background-color: var(--flutter-tile-active);
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+  50% {
+    background-color: #ffe082;
+    box-shadow: inset 0 0 0 6px var(--flutter-deep-orange);
+  }
+}
+
+.layout > .card:first-child .row-blink-done34 {
+  animation: row-blink-done34 0.38s ease-in-out infinite;
+  /* слой композитинга: мигание чаще перерисовывается в Chrome */
+  transform: translateZ(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout > .card:first-child .row-blink-done34 {
+    /* не отключаем полностью — иначе остаётся только статичная обводка */
+    animation: row-blink-done34 1.35s ease-in-out infinite;
+  }
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.login-overlay {
+  z-index: 1100;
+}
+
+.login-panel {
+  max-width: 340px;
+}
+
+.login-body {
+  padding: 12px 16px 16px;
+}
+
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pin-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.54);
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.pin-dot--filled {
+  background: rgba(0, 0, 0, 0.54);
+}
+
+.login-error {
+  min-height: 1.25em;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #c62828;
+  text-align: center;
+}
+
+.pin-pad {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.pin-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.pin-key {
+  min-width: 56px;
+  min-height: 52px;
+  padding: 8px 12px;
+  font-size: 22px;
+  font-weight: 700;
+  border: 1px solid rgba(0, 0, 0, 0.26);
+  border-radius: 6px;
+  background: var(--flutter-white);
+  color: var(--flutter-on-surface);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pin-key:active {
+  background: #f0f0f0;
+}
+
+.pin-key--wide {
+  font-size: 20px;
+}
+
+.pin-key--accent {
+  background: var(--flutter-blue);
+  border-color: var(--flutter-blue-accent);
+  color: var(--flutter-white);
+}
+
+.pin-key--accent:active {
+  filter: brightness(0.95);
+}
+
+.btn-logout-header {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--flutter-white);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.app-authed .btn-logout-header {
+  display: inline-flex;
+}
+
+/* Material SimpleDialog-style surface */
+.dialog {
+  background: var(--flutter-dialog);
+  color: var(--flutter-on-surface);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.dialog-head {
+  padding: 14px 16px;
+  font-size: 20px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--flutter-on-surface);
+}
+
+.dialog-body {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dialog-foot {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.schema-error-overlay {
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.schema-error-lead {
+  margin: 0 0 10px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.schema-error-pre {
+  margin: 0;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: min(48vh, 420px);
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.btn {
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  background: var(--flutter-white);
+  color: var(--flutter-on-surface);
+}
+
+.btn-primary {
+  background: var(--flutter-blue);
+  border-color: var(--flutter-blue-accent);
+  color: var(--flutter-white);
+  font-weight: 700;
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.btn-block {
+  width: 100%;
+  text-align: left;
+}
+
+.pay-total {
+  padding: 12px 16px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--flutter-on-surface);
+}
+
+.pay-methods {
+  padding: 0 16px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pay-methods .btn {
+  flex: 1;
+  min-width: 90px;
+}
+
+.pay-foot {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.status-confirm-panel {
+  max-width: 460px;
+}
+
+.limit-panel {
+  max-width: 460px;
+}
+
+.limit-icon-wrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.limit-icon {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.limit-message {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--flutter-on-surface);
+  line-height: 1.35;
+}
+
+/* Неоплаченный заказ: напоминание перед меню действий (архив недоступен) */
+.payment-required-overlay {
+  z-index: 1050;
+  background: rgba(0, 17, 40, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.payment-required-panel {
+  max-width: 440px;
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.payment-required-visual {
+  padding: 28px 24px 8px;
+  text-align: center;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 152, 0, 0.2) 0%,
+    rgba(68, 138, 255, 0.08) 45%,
+    transparent 100%
+  );
+}
+
+.payment-required-icon-ring {
+  width: 88px;
+  height: 88px;
+  margin: 0 auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(145deg, var(--flutter-orange) 0%, var(--flutter-deep-orange) 100%);
+  box-shadow:
+    0 14px 32px rgba(255, 87, 34, 0.38),
+    0 0 0 4px rgba(255, 255, 255, 0.35);
+  animation: payment-ring-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes payment-ring-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 14px 32px rgba(255, 87, 34, 0.38),
+      0 0 0 4px rgba(255, 255, 255, 0.35);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow:
+      0 18px 40px rgba(255, 87, 34, 0.48),
+      0 0 0 6px rgba(255, 193, 7, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-required-icon-ring {
+    animation: none;
+  }
+}
+
+.payment-required-head {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-bottom: none;
+  padding: 8px 16px 4px;
+  color: #1565c0;
+}
+
+.payment-required-foot {
+  justify-content: center;
+  padding: 16px 20px 20px;
+  border-top: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), transparent);
+}
+
+.btn-payment-required {
+  min-width: 200px;
+  padding: 14px 28px;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(76, 175, 80, 0.35);
+}
+
+.status-confirm-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 0 6px;
+}
+
+.status-arrow {
+  font-size: 26px;
+  font-weight: 700;
+  color: #424242;
+}
+
+.status-badge {
+  min-width: 130px;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.status-badge--from {
+  color: #1b3d5c;
+  background: #d7e7f5;
+  border: 1px solid #9cbfdd;
+}
+
+.status-badge--to {
+  color: #1f4f21;
+  background: #def5de;
+  border: 1px solid #9ed49e;
+}
+
+.row-main,
+.row-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-side {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.number {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.service {
+  font-size: 18px;
+}
+
+.table,
+.time {
+  font-size: 18px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.layout > .card:first-child .empty,
+.layout > .card:nth-child(2) .empty {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+@media (max-width: 1280px) {
+  h1 { font-size: 24px; }
+  h2 { font-size: 20px; }
+  .number { font-size: 24px; }
+  .service, .table, .time { font-size: 16px; }
+}
+
+/* Phone / narrow: scroll whole page, one column, manual refresh only (no interval in app.js) */
+@media (max-width: 767px) {
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .topbar {
+    min-height: 72px;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .brand h1 {
+    font-size: 22px;
+  }
+
+  .btn-refresh-top {
+    display: inline-flex;
+  }
+
+  .layout {
+    flex: none;
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .layout > .card:first-child,
+  .layout > .card:nth-child(2) {
+    min-height: auto;
+    flex: none;
+  }
+
+  .layout > .card:first-child .list,
+  .layout > .card:nth-child(2) .list {
+    overflow: visible;
+    flex: none;
+    min-height: 120px;
+  }
+
+  .status-line {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .row-side {
+    width: 100%;
+    text-align: left;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .table,
+  .time {
+    white-space: normal;
+  }
+}

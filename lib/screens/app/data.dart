@@ -1,6 +1,9 @@
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/utils/global.dart';
 
+bool _part2HasPartLinks(List<Map<String, dynamic>> part2) =>
+    part2.any((p) => p['f_part'] != null);
+
 class Data {
   final AppModel model;
 
@@ -33,6 +36,9 @@ class Data {
     if ((basketData['f_amountcard'] ?? 0) > 0 && (basketData['f_amountcard'] ?? 0) != basketData['f_amounttotal']) {
       basketData['f_amountcard'] = basketData['f_amounttotal'];
     }
+    if ((basketData['f_amountother'] ?? 0) > 0 && (basketData['f_amountother'] ?? 0) != basketData['f_amounttotal']) {
+      basketData['f_amountother'] = basketData['f_amounttotal'];
+    }
     return total;
   }
 
@@ -40,28 +46,30 @@ class Data {
   final List<dynamic> tables = [];
   final List<dynamic> works = [];
 
-  //translation
-  final Map<String, Map<String, dynamic>> translation = {};
-
-  void loadPart2(int id) {
-    part1filter = id;
+  void loadPart2(dynamic id) {
+    part1filter = idVal(id) ?? 0;
     model.basketController.add(0);
     filterDishes(0);
   }
 
-  void filterDishes(int id) {
-    part2filter = id;
-    model.dishesController.add(id);
+  void filterDishes(dynamic id) {
+    part2filter = idVal(id) ?? 0;
+    model.dishesController.add(part2filter);
   }
 
   List<Map<String, dynamic>> part1List() {
     final l = <Map<String, dynamic>>[];
     for (final p1 in part1) {
       for (final p2 in part2) {
-        if (p2['f_part'] == p1['f_id']) {
+        if (idEq(p2['f_part'], p1['f_id'])) {
           l.add(p1);
           break;
         }
+      }
+    }
+    if (l.isEmpty && part1.isNotEmpty && part2.isNotEmpty) {
+      if (!_part2HasPartLinks(part2)) {
+        return List<Map<String, dynamic>>.from(part1);
       }
     }
     return l;
@@ -70,8 +78,13 @@ class Data {
   List<Map<String, dynamic>> part2List(int p1) {
     final l = <Map<String, dynamic>>[];
     for (final p2 in part2) {
-      if (p2['f_part'] == p1) {
+      if (idEq(p2['f_part'], p1)) {
         l.add(p2);
+      }
+    }
+    if (l.isEmpty && part2.isNotEmpty) {
+      if (!_part2HasPartLinks(part2)) {
+        return List<Map<String, dynamic>>.from(part2);
       }
     }
     return l;

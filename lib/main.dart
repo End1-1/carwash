@@ -2,13 +2,9 @@ import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/app/question_bloc.dart';
 import 'package:carwash/screens/cashdesk.dart';
-import 'package:carwash/screens/cashsession.dart';
 import 'package:carwash/screens/login.dart';
-import 'package:carwash/screens/welcome.dart';
 import 'package:carwash/screens/widgets/dish_basket.dart';
 import 'package:carwash/utils/prefs.dart';
-import 'package:carwash/utils/web_query.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:carwash/l10n/app_localizations.dart';
@@ -20,11 +16,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-
+  prefs = await SharedPreferences.getInstance();
+  PackageInfo.fromPlatform().then((PackageInfo packageInfo) {
+    String appName = packageInfo.appName;
+    //String packageName = packageInfo.packageName;
+    String version = packageInfo.version;
+    String buildNumber = packageInfo.buildNumber;
+    prefs.setString('pkAppName', appName);
+    prefs.setString('pkAppVersion', '$version.$buildNumber');
+  });
   runApp(MultiBlocProvider(providers: [
     BlocProvider<AppAnimateBloc>(create: (context) => AppAnimateBloc()),
     BlocProvider<AppBloc>(create: (context) => AppBloc()),
-    BlocProvider<CashBloc>(create: (context) => CashBloc()),
     BlocProvider<QuestionBloc>(create: (context) => QuestionBloc()),
     BlocProvider<CookingTimeBlok>(
         create: (context) => CookingTimeBlok(CookingTimeState()))
@@ -39,13 +42,27 @@ class App extends StatefulWidget {
 }
 
 class _App extends State<App> {
-  late final AppModel _appModel;
+  final AppModel _appModel = AppModel();
   var error = '';
-  var _isInit = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _runInitializationWhenNavigatorReady());
+  }
+
+  void _runInitializationWhenNavigatorReady([int attempt = 0]) {
+    if (!mounted) return;
+    final navContext = Prefs.navigatorKey.currentContext;
+    if (navContext == null) {
+      if (attempt < 20) {
+        WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _runInitializationWhenNavigatorReady(attempt + 1));
+      }
+      return;
+    }
+    _appModel.screenSize = MediaQuery.sizeOf(navContext);
+    _appModel.configScreenSize();
     initialization();
   }
 
@@ -62,58 +79,30 @@ class _App extends State<App> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('en'), Locale('hy'), Locale('ru')],
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: _isInit
-          ? _appModel.login
-              ? ((prefs.getInt('cashsession') ?? 0) == 0
-                  ? CashSession(_appModel)
-                  : WelcomeScreen(_appModel..dialogController.add(error)))
-              : LoginScreen(_appModel)
-          : CircularProgressIndicator(),
+      home: LoginScreen(_appModel),
     );
   }
 
   void initialization() async {
-    prefs = await SharedPreferences.getInstance();
-    PackageInfo.fromPlatform().then((PackageInfo packageInfo) {
-      String appName = packageInfo.appName;
-      //String packageName = packageInfo.packageName;
-      String version = packageInfo.version;
-      String buildNumber = packageInfo.buildNumber;
-      prefs.setString('pkAppName', appName);
-      prefs.setString('pkAppVersion', '$version.$buildNumber');
-    });
-    _appModel = AppModel();
-    _appModel.screenSize ??= MediaQuery.sizeOf(context);
-    _appModel.configScreenSize();
+    if (!mounted) return;
 
-    if (kIsWeb) {
-      prefs.setString("webserveraddress", Uri.base.host);
-      await WebHttpQuery('/config/').request({}).then((value) {
-        if (value['status'] == 1) {
-          prefs.setString("menucode", value["menu_id"].toString());
-          prefs.setString("serveraddress", value["serveraddress"]);
-        }
-      });
-    } else {
-      prefs.setString("serveraddress", "carwash.picassocloud.com");
-      if (prefs.string("serveraddress").isEmpty) {
-        _isInit = true;
-        FlutterNativeSplash.remove();
-        return;
-      }
+    prefs.setString(
+        'serveraddress', prefs.getString('webserveraddress') ?? '');
+    if (prefs.string('serveraddress').isEmpty) {
+      FlutterNativeSplash.remove();
+      return;
     }
 
     _appModel.initModel().then((value) {
+      if (!mounted) return;
       error = value;
-      //FlutterNativeSplash.remove();
       setState(() {});
     });
-    _isInit = true;
     FlutterNativeSplash.remove();
   }
 }

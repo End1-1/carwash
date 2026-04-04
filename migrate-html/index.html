@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="hy" data-app="carwash-tv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="icon" href="/status/favicon.ico" sizes="any">
+  <title>Carwash Status</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="./assets/icons/shower.png" alt="" class="brand-icon">
+      <h1 data-i18n="app_title">Carwash Status</h1>
+    </div>
+    <div class="meta">
+      <button type="button" id="btn-logout" class="btn-logout-header" data-i18n="logout" data-i18n-aria="logout_aria">
+        Ելք
+      </button>
+      <button type="button" id="btn-refresh" class="btn-refresh-top" data-i18n="refresh" data-i18n-aria="refresh_aria">
+        Թարմացնել
+      </button>
+      <img src="./assets/icons/timer.png" alt="" class="meta-icon">
+      <span id="last-update">--:--:--</span>
+    </div>
+  </header>
+  <div id="status-line" class="status-line" data-i18n="init_status">սկզբնավորում…</div>
+
+  <div id="login-overlay" class="overlay login-overlay" style="display: flex" aria-hidden="false">
+    <div class="dialog login-panel" role="dialog" aria-labelledby="login-title">
+      <div class="dialog-head" id="login-title" data-i18n="login_title">Մուտք</div>
+      <div class="login-body">
+        <div class="pin-dots" aria-live="polite">
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+        </div>
+        <div id="login-error" class="login-error" role="alert"></div>
+        <div class="pin-pad">
+          <div class="pin-row">
+            <button type="button" class="pin-key" data-pin="1">1</button>
+            <button type="button" class="pin-key" data-pin="2">2</button>
+            <button type="button" class="pin-key" data-pin="3">3</button>
+          </div>
+          <div class="pin-row">
+            <button type="button" class="pin-key" data-pin="4">4</button>
+            <button type="button" class="pin-key" data-pin="5">5</button>
+            <button type="button" class="pin-key" data-pin="6">6</button>
+          </div>
+          <div class="pin-row">
+            <button type="button" class="pin-key" data-pin="7">7</button>
+            <button type="button" class="pin-key" data-pin="8">8</button>
+            <button type="button" class="pin-key" data-pin="9">9</button>
+          </div>
+          <div class="pin-row">
+            <button type="button" class="pin-key pin-key--wide" data-pin="bs" data-i18n-aria="pin_clear_aria">⌫</button>
+            <button type="button" class="pin-key" data-pin="0">0</button>
+            <button type="button" class="pin-key pin-key--accent" data-pin="ok">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="layout">
+    <section class="card">
+      <div class="card-head">
+        <h2 data-i18n="col_active">Աշխատանքում</h2>
+        <img src="./assets/icons/fan.png" alt="" class="card-icon">
+      </div>
+      <div id="active-list" class="list" aria-live="polite"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2 data-i18n="col_pending">Սպասում են</h2>
+        <img src="./assets/icons/parking.png" alt="" class="card-icon">
+      </div>
+      <div id="queued-list" class="list" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay" style="display: none" aria-hidden="true">
+    <div class="dialog action-panel" role="dialog" aria-labelledby="dialog-title">
+      <div class="dialog-head" id="dialog-title">—</div>
+      <div class="dialog-body" id="dialog-buttons"></div>
+      <div class="dialog-foot">
+        <button type="button" id="dialog-close" class="btn btn-ghost" data-i18n="dialog_close">Փակել</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pay-overlay" class="overlay" style="display: none" aria-hidden="true">
+    <div class="dialog pay-panel" role="dialog">
+      <div class="dialog-head" id="pay-title" data-i18n="payment_word">Վճարում</div>
+      <div class="pay-total" id="pay-total"></div>
+      <div class="pay-methods" id="pay-methods"></div>
+      <div class="dialog-foot pay-foot">
+        <button type="button" id="pay-confirm" class="btn btn-primary" data-i18n="pay_confirm">Հաստատել</button>
+        <button type="button" id="pay-cancel" class="btn btn-ghost" data-i18n="pay_cancel">Փակել</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="status-confirm-overlay" class="overlay" style="display: none" aria-hidden="true">
+    <div class="dialog status-confirm-panel" role="dialog" aria-labelledby="status-confirm-title">
+      <div class="dialog-head" id="status-confirm-title" data-i18n="status_change_confirm">Изменить статус?</div>
+      <div class="dialog-body">
+        <div class="status-confirm-line">
+          <span class="status-badge status-badge--from" id="status-confirm-from">—</span>
+          <span class="status-arrow">→</span>
+          <span class="status-badge status-badge--to" id="status-confirm-to">—</span>
+        </div>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" id="status-confirm-ok" class="btn btn-primary" data-i18n="pay_confirm">Հաստատել</button>
+        <button type="button" id="status-confirm-cancel" class="btn btn-ghost" data-i18n="pay_cancel">Փակել</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="schema-error-overlay" class="overlay schema-error-overlay" style="display: none" aria-hidden="true">
+    <div class="dialog schema-error-panel" role="alertdialog" aria-labelledby="schema-error-title">
+      <div class="dialog-head" id="schema-error-title"></div>
+      <div class="dialog-body">
+        <p id="schema-error-lead" class="schema-error-lead"></p>
+        <pre id="schema-error-detail" class="schema-error-pre" tabindex="0"></pre>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" id="schema-error-refresh" class="btn btn-primary" data-i18n="refresh">Թարմացնել</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="payment-required-overlay" class="overlay payment-required-overlay" style="display: none" aria-hidden="true">
+    <div class="dialog payment-required-panel" role="dialog" aria-labelledby="payment-required-title" aria-modal="true">
+      <div class="payment-required-visual">
+        <div class="payment-required-icon-ring">
+          <svg class="payment-required-svg" viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="dialog-head payment-required-head" id="payment-required-title"></div>
+      <div class="dialog-foot payment-required-foot">
+        <button type="button" id="payment-required-ok" class="btn btn-primary btn-payment-required"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="limit-overlay" class="overlay" style="display: none" aria-hidden="true">
+    <div class="dialog limit-panel" role="dialog" aria-labelledby="limit-title">
+      <div class="dialog-head" id="limit-title" data-i18n="wash_limit_title">Посты заняты</div>
+      <div class="dialog-body">
+        <div class="limit-icon-wrap">
+          <img src="./assets/icons/shower.png" alt="" class="limit-icon" width="56" height="56">
+        </div>
+        <div id="limit-message" class="limit-message"></div>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" id="limit-close" class="btn btn-primary" data-i18n="pay_cancel">Փակել</button>
+      </div>
+    </div>
+  </div>
+
+  <template id="row-template">
+    <article class="row row-clickable" tabindex="0">
+      <img src="./assets/icons/parking.png" alt="" class="status-icon" width="40" height="40">
+      <div class="row-main">
+        <div class="number"></div>
+        <div class="service"></div>
+      </div>
+      <div class="row-side">
+        <div class="table"></div>
+        <div class="time"></div>
+      </div>
+    </article>
+  </template>
+
+  <script src="./i18n.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

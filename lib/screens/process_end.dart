@@ -28,6 +28,7 @@ class ProcessEndScreen {
                 'f_amountcash': o['f_amountcash'],
                 'f_amountcard': o['f_amountcard'],
                 'f_amountidram': o['f_amountidram'],
+                'f_amountother': o['f_amountother'],
                 'f_id': o['f_id']
               },
               'engine/carwash/end-order.php');
@@ -54,6 +55,7 @@ class ProcessEndScreen {
                 'f_amountcash': o['f_amountcash'],
                 'f_amountcard': o['f_amountcard'],
                 'f_amountidram': o['f_amountidram'],
+                'f_amountother': o['f_amountother'],
                 'f_id': o['f_id']
               },
               'engine/carwash/end-order.php');
@@ -71,7 +73,7 @@ class ProcessEndScreen {
         }
         return true;
       } else {
-        model.getProcessList();
+        // Process board moved to migrate-html.
       }
     });
   }
@@ -85,7 +87,8 @@ class _ProcessScreenWidget extends StatefulWidget {
   _ProcessScreenWidget(this.o, this.model) {
     readonly = (o['f_amountcash'] ?? 0) > 0 ||
         (o['f_amountcard'] ?? 0) > 0 ||
-        (o['f_amountidram'] ?? 0) > 0;
+        (o['f_amountidram'] ?? 0) > 0 ||
+        (o['f_amountother'] ?? 0) > 0;
   }
 
   @override
@@ -98,7 +101,7 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
 
   @override
   Widget build(BuildContext context) {
-    durationController.text = '${widget.o['f_items'].first['f_cookingtime']}';
+    durationController.text = '${widget.o['f_items'].first['f_cooking_time']}';
     return Column(children: [
       Container(
           padding: const EdgeInsets.all(5),
@@ -135,7 +138,7 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
                     ),
                     // Row(
                     //   children: [
-                    //     Text(widget.model.tr('End time')),
+                    //     Text(… end time …),
                     //     Expanded(child: Container()),
                     //     Text(dateTimeToTimeStr(widget.o['f_done']))
                     //   ],
@@ -147,7 +150,7 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
                           Expanded(
                               child: MTextFormField(
                             controller: durationController,
-                            hintText: widget.model.tr('Duration'),
+                            hintText: widget.model.locale().duration,
                           )),
                           IconButton(
                               onPressed: () {
@@ -181,7 +184,7 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
               child: globalOutlinedButton(
                   onPressed: () {
                     Dialogs.question(
-                            widget.model.tr('End order?'), widget.model)
+                            widget.model.locale().endOrderQuestion, widget.model)
                         .then((value) {
                       if (value ?? false) {
                         if (widget.o['f_state'] == 1) {
@@ -189,10 +192,11 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
                         } else {
                           if ((widget.o['f_amountcash'] ?? 0) +
                                   (widget.o['f_amountcard'] ?? 0) +
-                                  (widget.o['f_amountidram'] ?? 0) <
+                                  (widget.o['f_amountidram'] ?? 0) +
+                                  (widget.o['f_amountother'] ?? 0) <
                               (widget.o['f_amounttotal'] ?? 0)) {
                             Dialogs.show(
-                                widget.model.tr('Select payment method'));
+                                widget.model.locale().selectPaymentMethod);
                           } else {
                             Navigator.pop(context, true);
                           }
@@ -200,7 +204,8 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
                       }
                     });
                   },
-                  title: widget.model.tr('Finish'))),
+                  title: widget.model.locale().finish),
+                ),
           const SizedBox(width: 10),
           SizedBox(
               width: 100,
@@ -209,7 +214,8 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  title: widget.model.tr('Close'))),
+                  title: widget.model.locale().close),
+                ),
           Expanded(child: Container()),
         ],
       )

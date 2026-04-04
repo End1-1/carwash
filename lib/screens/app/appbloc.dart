@@ -67,6 +67,15 @@ class AppEventChangePayment extends AppEventQuery {
   AppEventChangePayment(super.route, super.data);
 }
 
+/// Загрузка списка процессов (как TV/HTML), отдельно от [AppEventQueryShift].
+class AppEventQueryGoodsProcess extends AppEventQuery {
+  AppEventQueryGoodsProcess(super.route, super.data);
+}
+
+class AppStateGoodsProcess extends AppStateFinish {
+  AppStateGoodsProcess(super.data);
+}
+
 class AppEventQueryCloseDay extends AppEventQuery {
   AppEventQueryCloseDay(super.route, super.data);
 }
@@ -92,6 +101,13 @@ class AppAnimateBloc extends Bloc<AppAnimateEvent, AppAnimateState> {
   }
 }
 
+bool _httpJsonStatusOk(dynamic status) {
+  if (status == 1 || status == true) return true;
+  if (status is num && status.toInt() == 1) return true;
+  final s = '$status'.trim().toLowerCase();
+  return s == '1' || s == 'true';
+}
+
 class AppBloc extends Bloc<AppEvent, AppState> {
   AppBloc() : super(AppState()) {
     on<AppEvent>((event, emit) => emit(AppState()));
@@ -106,13 +122,15 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   Future<void> query(AppEventQuery e) async {
     emit(AppStateLoading());
     final result = await WebHttpQuery(e.route).request(e.data);
-    if (result['status'] == 1) {
+    if (_httpJsonStatusOk(result['status'])) {
       if (e is AppEventQueryCash || e is AppEventQueryRemoveFromCash) {
         emit(AppStateCash(result['data']));
       } else if (e is AppEventQueryCloseDay) {
         emit(AppStateClosed());
       } else if (e is AppEventQueryOpenSession) {
         emit(AppStateCashSession(result));
+      } else if (e is AppEventQueryGoodsProcess) {
+        emit(AppStateGoodsProcess(result));
       } else if (e is AppEventQueryShift  || e is AppEventChangePayment) {
         emit(AppStateShifts(result));
       } else {

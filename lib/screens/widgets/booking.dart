@@ -16,12 +16,12 @@ class Booking extends StatelessWidget {
     return Column(
       children: [
         Row(children: [
-          Expanded(child: MTextFormField(controller: dateController, hintText: model.tr('Date'))),
+          Expanded(child: MTextFormField(controller: dateController, hintText: model.locale().date)),
           IconButton(onPressed: (){}, icon: const Icon(Icons.edit_outlined))
         ],)  ,
         const SizedBox(height: 10,),
         Row(children: [
-          Expanded(child: MTextFormField(controller: timeController, hintText: model.tr('Time'))),
+          Expanded(child: MTextFormField(controller: timeController, hintText: model.locale().time)),
           IconButton(onPressed: (){
             selectDate().then((value) {
 

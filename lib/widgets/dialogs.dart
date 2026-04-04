@@ -61,14 +61,16 @@ class Dialogs {
                           onPressed: () {
                             Navigator.pop(context, true);
                           },
-                          title: model.tr('Yes'))),
+                          title: model.locale().yes),
+                    ),
                SizedBox.fromSize(
                       size: const Size(100, kButtonHeight),
                       child: globalOutlinedButton(
                           onPressed: () {
                             Navigator.pop(context);
                           },
-                          title: model.tr('No')))
+                          title: model.locale().no),
+                    ),
             ],
           );
         });

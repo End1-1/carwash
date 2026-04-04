@@ -15,8 +15,12 @@ class _DishQtyState extends State<DishQty> {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+            visualDensity: VisualDensity.compact,
             onPressed: () {
               if (widget.qty < 99) {
                 widget.qty += 1;
@@ -24,7 +28,7 @@ class _DishQtyState extends State<DishQty> {
                 setState(() {});
               }
             },
-            icon: const Icon(Icons.plus_one, color: Colors.white, size: 30,)),
+            icon: const Icon(Icons.plus_one, color: Colors.white, size: 24)),
         Container(
             width: 30,
             height: 30,
@@ -42,6 +46,9 @@ class _DishQtyState extends State<DishQty> {
               textAlign: TextAlign.center,
             )),
         IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+            visualDensity: VisualDensity.compact,
             onPressed: () {
               if (widget.qty > 1) {
                 widget.qty -= 1;
@@ -49,7 +56,7 @@ class _DishQtyState extends State<DishQty> {
                 setState(() {});
               }
             },
-            icon: const Icon(Icons.exposure_minus_1, color: Colors.white, size: 30,)),
+            icon: const Icon(Icons.exposure_minus_1, color: Colors.white, size: 24)),
 
       ],
     );

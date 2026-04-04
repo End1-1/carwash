@@ -1,0 +1,37 @@
+<?php
+/**
+ * Пример исправления UpdateStatus для o_goods_process.
+ * Ошибка: в JSON_SET всегда писался ключ $.f_status_2_2_time.
+ * Нужно: записывать $.f_status_{status}_{substatus}_time для текущей пары из $params.
+ *
+ * Встраивание: замените тело UpdateStatus в вашем классе (имя класса/неймспейс — свои).
+ */
+
+// ... existing class ...
+
+public function UpdateStatus($params)
+{
+    $st = (int) $params->status;
+    $ss = (int) $params->substatus;
+
+    // Было: всегда '$.f_status_2_2_time'. Нужно: время входа в пару (st, ss) — как на TV (migrate-html ogpStatusSubTime).
+    // Путь строим только из целых, в SQL подставляем как литерал пути JSON (без пользовательского ввода в путь).
+    $jsonTimePath = sprintf('$.f_status_%d_%d_time', $st, $ss);
+
+    $sql = <<<SQL
+UPDATE o_goods_process
+SET f_status = ?,
+f_data = JSON_SET(
+    COALESCE(f_data, '{}'),
+    '{$jsonTimePath}', NOW(),
+    '$.f_substatus', ?
+)
+WHERE f_id = ?
+SQL;
+
+    // Типы как у вас: status (i), substatus в JSON (i/s), id (s для uuid)
+    $this->select($sql, "iis", [$st, $ss, $params->id], true);
+    $this->get($params);
+}
+
+// ... existing class ...

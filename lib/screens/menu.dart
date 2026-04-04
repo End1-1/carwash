@@ -23,7 +23,10 @@ class _WMAppMenu extends State<WMAppMenu> {
     final width = MediaQuery.sizeOf(context).width * 0.8;
     return BlocBuilder<AppAnimateBloc, AppAnimateState>(
         builder: (builder, state) {
-      return Stack(
+      final menuOpen = state is AppAnimateStateRaise;
+      return IgnorePointer(
+        ignoring: !menuOpen,
+        child: Stack(
         children: [
           AnimatedSwitcher(
               duration: const Duration(milliseconds: 500),
@@ -76,6 +79,7 @@ class _WMAppMenu extends State<WMAppMenu> {
                     ),
                   )))
         ],
+      ),
       );
     });
   }

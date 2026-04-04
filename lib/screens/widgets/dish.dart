@@ -1,7 +1,6 @@
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/widgets/dish_dialog.dart';
 import 'package:carwash/utils/global.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class Dish extends StatelessWidget {
@@ -41,7 +40,7 @@ class Dish extends StatelessWidget {
                     size: _height))
                     : imageFromBase64(data['f_image'],
                     width: _width)),
-        Text(data['f_name'],
+        Text(data['f_dish_name'],
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -50,7 +49,7 @@ class Dish extends StatelessWidget {
                 fontSize: 16)),
         Expanded(child: Container(),),
         Row(children: [
-          Text('${model.tr('Price')} ${data['f_price']}֏', style: const TextStyle(color: Colors.white)), Expanded(child: Container())
+          Text('${model.locale().price} ${data['f_price']}֏', style: const TextStyle(color: Colors.white)), Expanded(child: Container())
         ],)
       ]),
     )

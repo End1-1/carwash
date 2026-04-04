@@ -19,65 +19,66 @@ class CashSession extends AppScreen {
       backgroundColor: Colors.green,
       toolbarHeight: kToolbarHeight,
       title: Text(prefs.appTitle()),
-      actions: [
-        IconButton(
-            onPressed: model.navBasket,
-            icon: SizedBox(
-                width: 24,
-                height: 24,
-                child: Stack(alignment: Alignment.center, children: [
-                  const Icon(Icons.shopping_basket_outlined),
-                  StreamBuilder(
-                      stream: model.basketController.stream,
-                      builder: (builder, snapshot) {
-                        if (model.appdata.basket.isEmpty) {
-                          return Container();
-                        }
-                        return Align(
-                            alignment: Alignment.topRight,
-                            child: Container(
-                                width: 16,
-                                height: 16,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(10)),
-                                child: Text('${model.appdata.basket.length}',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold))));
-                      })
-                ])))
-      ],
+      actions: const [],
     );
   }
 
   @override
   Widget body() {
     return BlocListener<AppBloc, AppState>(
-      listenWhen: (p, c) => c is AppStateCashSession,
-        listener: (context, state) {
+      listenWhen: (p, c) =>
+          c is AppStateCashSession || c is AppStateError,
+      listener: (context, state) {
+        if (state is AppStateError) {
+          model.dialogController.add(state.error.toString());
+          return;
+        }
         if (state is AppStateCashSession) {
-          prefs.setInt('cashsession', state.data['cashsession']['f_id']);
-          if ((prefs.getInt('cashsession') ?? 0) > 0) {
+          final raw = state.data;
+          var sid = 0;
+          final cbs = raw['cashbox_session'];
+          if (cbs is Map) {
+            sid = int.tryParse('${cbs['f_id']}') ?? 0;
+          }
+          if (sid <= 0) {
+            final legacy = raw['cashsession'];
+            if (legacy is Map) {
+              sid = int.tryParse('${legacy['f_id']}') ?? 0;
+            }
+          }
+          if (sid <= 0) {
+            sid = int.tryParse('${raw['cashbox_session_id']}') ?? 0;
+          }
+          if (sid > 0) {
+            prefs.setInt('cashsession', sid);
             model.navHome();
           }
         }
-
-    },
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Center(child: Text(model.tr('No active session'))),
-        Center(child: InkWell(onTap: startNewSession, child: Column(children: [
-          Icon(Icons.access_alarm_outlined, size: 60),
-          Text(model.tr('Start new shift'))
-        ])))
-      ],
-    ));
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (model.cashboxIdForOrder <= 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              child: Text(
+                model.locale().cashboxNotConfigured,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          Center(child: Text(model.locale().noActiveSession)),
+          Center(
+              child: InkWell(
+                  onTap: startNewSession,
+                  child: Column(children: [
+                    Icon(Icons.access_alarm_outlined, size: 60),
+                    Text(model.locale().startNewShift)
+                  ])))
+        ],
+      ),
+    );
   }
 
 }

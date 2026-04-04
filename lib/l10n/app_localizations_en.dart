@@ -12,6 +12,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get printFiscalFailed => 'Print fiscal failed';
 
   @override
+  String get fiscalNotConfigured =>
+      'Fiscal machine not configured (workstation / fiscal_machine)';
+
+  @override
   String get checkConnectionWithFiscalMachine =>
       'Check connection with fiscal machine';
 
@@ -26,4 +30,339 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get printBillFailed => 'Print bill failed';
+
+  @override
+  String get noActiveSession => 'No active session';
+
+  @override
+  String get cashboxNotConfigured =>
+      'Cashbox not configured (workstation / cashbox_id)';
+
+  @override
+  String get openCashSessionBeforeOrder =>
+      'Open cash session before taking orders';
+
+  @override
+  String get startNewShift => 'Start new shift';
+
+  @override
+  String get inProgress => 'In progress';
+
+  @override
+  String get pending => 'Pending';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get yes => 'Yes';
+
+  @override
+  String get no => 'No';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get price => 'Price';
+
+  @override
+  String get connectionSettings => 'Settings';
+
+  @override
+  String get webServer => 'Web server';
+
+  @override
+  String get titleField => 'Title';
+
+  @override
+  String get configField => 'Config';
+
+  @override
+  String get menuCode => 'Menu code';
+
+  @override
+  String get applicationMode => 'Application mode';
+
+  @override
+  String get showUnpaid => 'Show unpaid';
+
+  @override
+  String get tableField => 'Table';
+
+  @override
+  String get afterBasketNavigateToOrders => 'After basket navigate to orders';
+
+  @override
+  String get useSsl => 'Use SSL';
+
+  @override
+  String get amount => 'Amount';
+
+  @override
+  String get cash => 'Cash';
+
+  @override
+  String get card => 'Card';
+
+  @override
+  String get idram => 'Idram';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
+  String get report => 'Report';
+
+  @override
+  String get startDate => 'Start date';
+
+  @override
+  String get endDate => 'End date';
+
+  @override
+  String get input => 'Input';
+
+  @override
+  String get amountTotal => 'Amount total';
+
+  @override
+  String get output => 'Output';
+
+  @override
+  String get salary => 'Salary';
+
+  @override
+  String get other => 'Other';
+
+  @override
+  String get paymentNotPaid => 'Not paid';
+
+  @override
+  String get selfcost => 'Selfcost';
+
+  @override
+  String get profit => 'Profit';
+
+  @override
+  String get duration => 'Duration';
+
+  @override
+  String get hour => 'hour';
+
+  @override
+  String get minutesShort => 'min';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get carNumber => 'Car number';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get printFiscal => 'Print fiscal';
+
+  @override
+  String get reprintBill => 'Reprint bill';
+
+  @override
+  String get endOrderQuestion => 'End order?';
+
+  @override
+  String get selectPaymentMethod => 'Select payment method';
+
+  @override
+  String get finish => 'Finish';
+
+  @override
+  String get options => 'Options';
+
+  @override
+  String get process => 'Process';
+
+  @override
+  String get cashdesk => 'Cashdesk';
+
+  @override
+  String get history => 'History';
+
+  @override
+  String get historyModeReport => 'Session report';
+
+  @override
+  String get historyModeDoneParking => 'Done / parking';
+
+  @override
+  String get historyColCar => 'Car';
+
+  @override
+  String get historyColService => 'Service';
+
+  @override
+  String get historyColDaily => 'No.';
+
+  @override
+  String get historyColStatus => 'Status';
+
+  @override
+  String get historyStatusDone => 'Done';
+
+  @override
+  String get historyStatusParking => 'Parking';
+
+  @override
+  String get historyNoGoodsRows => 'No done or parking rows';
+
+  @override
+  String get historyPay => 'Pay';
+
+  @override
+  String get historyPayTitle => 'Payment';
+
+  @override
+  String get historyPayGetOrderFailed => 'Could not load order from server';
+
+  @override
+  String get historyPayTotalMismatch =>
+      'Payment amounts must match the order total';
+
+  @override
+  String get historyPayMissingOrderId =>
+      'Order id missing in server row (need f_header or header f_id)';
+
+  @override
+  String get carwashStatus => 'Carwash status';
+
+  @override
+  String get logout => 'Logout';
+
+  @override
+  String get order => 'Order';
+
+  @override
+  String get yourBasketIsEmpty => 'Your basket is empty';
+
+  @override
+  String get login => 'Login';
+
+  @override
+  String get date => 'Date';
+
+  @override
+  String get time => 'Time';
+
+  @override
+  String get carNumberIncorrect => 'Car number incorrect';
+
+  @override
+  String get yourOrderWasCreated => 'Your order was created';
+
+  @override
+  String get receiptPrinterNotConfigured =>
+      'Receipt printer not configured (receipt_printer in workstation config)';
+
+  @override
+  String get printServerNotConfigured =>
+      'Print server URL not configured (print_server in workstation config)';
+
+  @override
+  String get receiptTitle => 'Receipt';
+
+  @override
+  String get receiptPreorder => 'Preorder';
+
+  @override
+  String get receiptNameCol => 'Name';
+
+  @override
+  String get receiptQtyCol => 'Qty';
+
+  @override
+  String get receiptSubtotal => 'Subtotal';
+
+  @override
+  String get receiptService => 'Service';
+
+  @override
+  String get receiptDiscount => 'Discount';
+
+  @override
+  String get receiptPrepaid => 'Prepaid amount';
+
+  @override
+  String get receiptTotalDue => 'Total due';
+
+  @override
+  String get receiptAmountPaid => 'Amount paid';
+
+  @override
+  String get receiptChange => 'Change';
+
+  @override
+  String get receiptThankYou => 'Thank you for visit!';
+
+  @override
+  String get receiptPrinted => 'Printed';
+
+  @override
+  String get receiptStaff => 'Staff';
+
+  @override
+  String get receiptPaymentMethod => 'Payment';
+
+  @override
+  String get receiptPaymentBank => 'Bank';
+
+  @override
+  String get receiptPaymentComplimentaryShort => 'Complimentary';
+
+  @override
+  String get receiptTin => 'TIN';
+
+  @override
+  String get receiptDeviceNumber => 'Device number';
+
+  @override
+  String get receiptSerial => 'Serial';
+
+  @override
+  String get receiptFiscal => 'Fiscal';
+
+  @override
+  String get receiptReceiptNumber => 'Receipt number';
+
+  @override
+  String get receiptFMarker => '(F)';
+
+  @override
+  String get receiptClass => 'Class';
+
+  @override
+  String get receiptNoService => '* - no service';
+
+  @override
+  String get receiptNoDiscount => '** - no discount';
+
+  @override
+  String get receiptComplimentary => '*** - complimentary';
+
+  @override
+  String get receiptSample => 'Sample';
+
+  @override
+  String get receiptErrorState => 'Error in state';
+
+  @override
+  String get receiptPrintPluginHint =>
+      'Stop the app, then: flutter clean, flutter pub get, flutter run -d windows (full restart, not hot reload).';
+
+  @override
+  String get receiptPrintWindowsOnly =>
+      'Receipt printing is only implemented on Windows.';
 }

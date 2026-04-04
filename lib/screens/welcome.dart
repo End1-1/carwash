@@ -9,7 +9,6 @@ import 'package:carwash/utils/prefs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-part 'welcome_mobile.part.dart';
 part 'welcome_desctop.part.dart';
 
 class WelcomeScreen extends AppScreen {
@@ -20,28 +19,21 @@ class WelcomeScreen extends AppScreen {
 
   @override
   PreferredSizeWidget appBar() {
-    if (model.screenSize!.width < 500) {
-      return appBarMobile();
-    } else {
+
       return appBarDesktop();
-    }
+
   }
 
   @override
   Widget body() {
-    if (model.screenSize!.width < 500) {
-      return bodyMobile();
-    } else {
       return bodyDesktop();
-    }
+
   }
 
   @override
   List<Widget> menuWidgets() {
-    if (model.screenSize!.width < 500) {
-      return menuWidgetsMobile();
-    } else {
+
       return [];
-    }
+
   }
 }

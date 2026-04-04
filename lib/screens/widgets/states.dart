@@ -1,5 +1,6 @@
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/process_end.dart';
+import 'package:carwash/utils/global.dart';
 import 'package:carwash/utils/prefs.dart';
 import 'package:flutter/material.dart';
 
@@ -26,7 +27,8 @@ class _ProcessScreenWidget extends StatefulWidget {
   _ProcessScreenWidget(this.o, this.model) {
     readonly = (o['f_amountcash'] ?? 0) > 0 ||
         (o['f_amountcard'] ?? 0) > 0 ||
-        (o['f_amountidram'] ?? 0) > 0;
+        (o['f_amountidram'] ?? 0) > 0 ||
+        (o['f_amountother'] ?? 0) > 0;
   }
 
   @override
@@ -36,14 +38,16 @@ class _ProcessScreenWidget extends StatefulWidget {
 class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
   @override
   Widget build(BuildContext context) {
-    final wait = widget.o['progress'] == 2;
-    final wash = widget.o['progress'] == 1 || widget.o['progress'] == 3;
-    final dry = widget.o['progress'] < 4;
-    final parking = widget.o['progress'] < 4;
-    final cancel = widget.o['progress'] < 3;
+    final pr = orderProgress(widget.o);
+    final wait = pr == 2;
+    final wash = pr == 1 || pr == 3;
+    final dry = pr < 4;
+    final parking = pr < 4;
+    final cancel = pr < 3;
     final payment = (widget.o['f_amountcash'] ?? 0) == 0 &&
         (widget.o['f_amountcard'] ?? 0) == 0 &&
-        (widget.o['f_amountidram'] ?? 0) == 0;
+        (widget.o['f_amountidram'] ?? 0) == 0 &&
+        (widget.o['f_amountother'] ?? 0) == 0;
     return Column(children: [
       Container(
           padding: const EdgeInsets.all(5),
@@ -61,7 +65,7 @@ class _ProcessScreenWidgetState extends State<_ProcessScreenWidget> {
                               {'newstatus': 1}..addAll(widget.o));
                         },
                         icon: Icon(Icons.av_timer),
-                        label: Text('Սապսել')))
+                        label: Text('Սպասել')))
               ])
             ],
             if (wash) ...[

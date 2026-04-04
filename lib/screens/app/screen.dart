@@ -12,6 +12,9 @@ abstract class AppScreen extends StatelessWidget {
 
   const AppScreen( this.model, {super.key});
 
+  /// Slide-out menu sits in a [Stack] above [body]. Disable on screens with text fields.
+  bool get showSlideMenuOverlay => true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,7 +23,7 @@ abstract class AppScreen extends StatelessWidget {
         minimum: const EdgeInsets.fromLTRB(5, 5, 5, 5),
           child: Stack(children: [
             body(),
-            WMAppMenu(model, menuWidgets()),
+            if (showSlideMenuOverlay) WMAppMenu(model, menuWidgets()),
             BlocBuilder<AppBloc, AppState>(builder: (context, state) {
               if (state is AppStateError) {
                 return errorDialog(state.error);
@@ -77,7 +80,7 @@ abstract class AppScreen extends StatelessWidget {
                             child: SingleChildScrollView(
                                 child: Styling.textCenter(text))),
                         Styling.columnSpacingWidget(),
-                        Styling.textButton(model.closeErrorDialog, model.tr('Close'))
+                        Styling.textButton(model.closeErrorDialog, model.locale().close)
                       ],
                     ),
                   )
@@ -116,13 +119,13 @@ abstract class AppScreen extends StatelessWidget {
                           Styling.textButton(() {
                             model.closeQuestionDialog();
                             ifYes();
-                          }, model.tr('Yes')),
+                          }, model.locale().yes),
                           Styling.textButton(() {
                             model.closeQuestionDialog();
                             if (ifNo != null) {
                               ifNo!();
                             }
-                          }, model.tr('Cancel'))
+                          }, model.locale().cancel)
                         ])
                       ],
                     ),
@@ -173,7 +176,7 @@ abstract class AppScreen extends StatelessWidget {
                           Styling.textButton(() {
                             model.closeQuestionDialog();
                             callback(-1);
-                          }, model.tr('Cancel'))
+                          }, model.locale().cancel)
                         ])
                       ],
                     ),

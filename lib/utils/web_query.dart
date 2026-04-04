@@ -3,14 +3,31 @@ import 'package:carwash/utils/prefs.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'dart:io' show Platform, stdout;
+import 'dart:io' show Platform;
 
+/// Убирает сегмент пути `/apps` (сервер ожидает URL без него). Не трогает `…myapps…`.
+String normalizeWebApiRoute(String route) {
+  var r = route.trim();
+  if (r.isEmpty) return r;
+  var prev = '';
+  while (prev != r) {
+    prev = r;
+    r = r.replaceFirst(RegExp(r'/apps(?=/|$)'), '');
+  }
+  while (r.contains('//')) {
+    r = r.replaceAll('//', '/');
+  }
+  if (r.isEmpty) return '/';
+  if (!r.startsWith('/')) r = '/$r';
+  return r;
+}
 
 class WebHttpQuery {
 
   final String route;
   final int timeoutSeconds;
-  WebHttpQuery(this.route, {this.timeoutSeconds = 10});
+  WebHttpQuery(String route, {this.timeoutSeconds = 10})
+      : route = normalizeWebApiRoute(route);
 
   Future<Map<String, dynamic>> request(Map<String, dynamic> inData) async {
     inData.forEach((key, value) {
@@ -18,26 +35,31 @@ class WebHttpQuery {
         inData[key] = DateFormat('yyyy-MM-dd HH:mm:ss').format(value);
       }
     });
-    inData['sessionkey'] = prefs.string('passhash');
-    inData['apikey'] = prefs.string("apikey");
-    inData['apikey'] ='8eabcee4-f1bc-11ee-8b0f-021eaa527a65-a0d5c784-f1bc-11ee-8b0f-021eaa527a65';
     inData['config'] = prefs.string('config');
     inData['language'] = 'am';
     inData['hostinfo'] = Platform.localHostname;
     inData['cashsession'] = prefs.getInt('cashsession') ?? 0;
+    inData["nootp"] = true;
 
     Map<String, Object?> outData = {};
     String strBody = jsonEncode(inData);
+    final host = prefs.string('webserveraddress');
+    final useSsl = prefs.string('usessl').toUpperCase() != 'NO';
+    final uri =
+        useSsl ? Uri.https(host, route) : Uri.http(host, route);
     if (kDebugMode) {
-      print('${prefs.string("webserveraddress")}$route');
+      print('$uri');
       print('request: $strBody');
     }
     try {
       var response = await http
           .post(
-          Uri.https('${prefs.string("webserveraddress")}', route),
+          uri,
           headers: {
             'Content-Type': 'application/json',
+            'X-Application-Name': 'carwash',
+            'X-Application-Version': '1.0.2',
+            'Authorization': 'Bearer ${prefs.string('token')}',
             //'Content-Length': '${utf8.encode(strBody).length}'
             // "Access-Control-Allow-Origin": "*",
             // "Access-Control-Allow-Methods": "GET,PUT,PATCH,POST,DELETE",

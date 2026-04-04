@@ -44,7 +44,7 @@ class DishBasket extends StatelessWidget {
                                 size: _width))
                         : imageFromBase64(data['f_image'], width: _width)))
           ]),
-          Text(data['f_name'],
+          Text(data['f_dish_name'],
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -62,11 +62,11 @@ class DishBasket extends StatelessWidget {
             ),
           BlocBuilder<CookingTimeBlok, CookingTimeState>(
               builder: (builder, state) {
-            if (data['f_cookingtime'] > 0) {
+            if (data['f_cooking_time'] > 0) {
               return Row(children: [
                 IconButton(
                   onPressed: () {
-                    data['f_cookingtime'] = data['f_cookingtime'] + 10;
+                    data['f_cooking_time'] = data['f_cooking_time'] + 10;
                     BlocProvider.of<CookingTimeBlok>(prefs.context())
                         .add(CookingTimeUpdate());
                   },
@@ -74,13 +74,13 @@ class DishBasket extends StatelessWidget {
                       color: Colors.white),
                 ),
                 Text(
-                  '${model.tr('Duration')}  ${durationToString(data['f_cookingtime'], model.tr('hour'), model.tr('min'))}',
+                  '${model.locale().duration}  ${durationToString(data['f_cooking_time'], model.locale().hour, model.locale().minutesShort)}',
                   style: const TextStyle(color: Colors.white),
                 ),
                 IconButton(
                     onPressed: () {
-                      data['f_cookingtime'] = data['f_cookingtime'] - 10;
-                      if (data['f_cookingtime'] < 10) {
+                      data['f_cooking_time'] = data['f_cooking_time'] - 10;
+                      if (data['f_cooking_time'] < 10) {
                         data['f_cookigtime'] = 10;
                       }
                       BlocProvider.of<CookingTimeBlok>(prefs.context())
@@ -97,7 +97,7 @@ class DishBasket extends StatelessWidget {
           ),
           Row(
             children: [
-              Text('${model.tr('Price')} ${data['f_price']}֏',
+              Text('${model.locale().price} ${data['f_price']}֏',
                   style: const TextStyle(color: Colors.white)),
               Expanded(child: Container())
             ],
@@ -129,12 +129,12 @@ class DishBasket extends StatelessWidget {
                           Navigator.pop(
                               Prefs.navigatorKey.currentContext!, data);
                         },
-                        title: model.tr('Add'))
+                        title: model.locale().add)
                     : globalOutlinedButton(
                         onPressed: () {
                           model.appdata.removeBasketItem(data);
                         },
-                        title: model.tr('Remove')))
+                        title: model.locale().remove))
           ])
         ]));
   }

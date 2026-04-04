@@ -24,7 +24,7 @@ class StatusScreen extends AppScreen {
         ),
         backgroundColor: Colors.green,
         toolbarHeight: kToolbarHeight,
-        title: Text(model.tr('Report')),
+        title: Text(model.locale().report),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_outlined),
@@ -42,7 +42,7 @@ class StatusScreen extends AppScreen {
           Expanded(
               child: MTextFormField(
             controller: _model.startDateTextController,
-            hintText: model.tr('Start date'),
+            hintText: model.locale().startDate,
             readOnly: true,
             onTap: setStartDate,
           )),
@@ -50,7 +50,7 @@ class StatusScreen extends AppScreen {
           Expanded(
               child: MTextFormField(
                   controller: _model.endDateTextController,
-                  hintText: model.tr('End date'),
+                  hintText: model.locale().endDate,
                   readOnly: true,
                   onTap: setEndDate)),
         ],
@@ -69,7 +69,7 @@ class StatusScreen extends AppScreen {
                     SizedBox(
                         width: 120,
                         child: Text(
-                          model.tr('Input'),
+                          model.locale().input,
                           style: const TextStyle(
                               color: StatusModel.colorGreen,
                               fontWeight: FontWeight.bold,
@@ -80,28 +80,28 @@ class StatusScreen extends AppScreen {
                         children: [
                           SizedBox(
                               width: 120,
-                              child: Text(model.tr('Amount total'),
+                              child: Text(model.locale().amountTotal,
                                   style: const TextStyle(
                                       color: StatusModel.colorGreen,
                                       fontWeight: FontWeight.bold))),
                           const SizedBox(width: 5),
                           SizedBox(
                               width: 100,
-                              child: Text(model.tr('Cash'),
+                              child: Text(model.locale().cash,
                                   style: const TextStyle(
                                       color: StatusModel.colorGreen,
                                       fontWeight: FontWeight.bold))),
                           const SizedBox(width: 5),
                           SizedBox(
                               width: 100,
-                              child: Text(model.tr('Card'),
+                              child: Text(model.locale().card,
                                   style: const TextStyle(
                                       color: StatusModel.colorGreen,
                                       fontWeight: FontWeight.bold))),
                           const SizedBox(width: 5),
                           SizedBox(
                               width: 100,
-                              child: Text(model.tr('Idram'),
+                              child: Text(model.locale().idram,
                                   style: const TextStyle(
                                       color: StatusModel.colorGreen,
                                       fontWeight: FontWeight.bold))),
@@ -141,7 +141,7 @@ class StatusScreen extends AppScreen {
                     SizedBox(
                         width: 120,
                         child: Text(
-                          model.tr('Input'),
+                          model.locale().input,
                           style: const TextStyle(
                               color: StatusModel.colorRed,
                               fontWeight: FontWeight.bold,
@@ -152,28 +152,28 @@ class StatusScreen extends AppScreen {
                         children: [
                           SizedBox(
                               width: 120,
-                              child: Text(model.tr('Amount total'),
+                              child: Text(model.locale().amountTotal,
                                   style: const TextStyle(
                                       color: StatusModel.colorRed,
                                       fontWeight: FontWeight.bold))),
                           const SizedBox(width: 5),
                           SizedBox(
                               width: 100,
-                              child: Text(model.tr('Cash'),
+                              child: Text(model.locale().cash,
                                   style: const TextStyle(
                                       color: StatusModel.colorRed,
                                       fontWeight: FontWeight.bold))),
                           const SizedBox(width: 5),
                           SizedBox(
                               width: 100,
-                              child: Text(model.tr('Card'),
+                              child: Text(model.locale().card,
                                   style: const TextStyle(
                                       color: StatusModel.colorRed,
                                       fontWeight: FontWeight.bold))),
                           const SizedBox(width: 5),
                           SizedBox(
                               width: 100,
-                              child: Text(model.tr('Idram'),
+                              child: Text(model.locale().idram,
                                   style: const TextStyle(
                                       color: StatusModel.colorRed,
                                       fontWeight: FontWeight.bold))),
@@ -220,7 +220,7 @@ class StatusScreen extends AppScreen {
                         SizedBox(
                             width: 120,
                             child: Text(
-                              model.tr('Output'),
+                              model.locale().output,
                               style: const TextStyle(
                                   color: StatusModel.colorRed,
                                   fontWeight: FontWeight.bold,
@@ -231,21 +231,21 @@ class StatusScreen extends AppScreen {
                             children: [
                               SizedBox(
                                   width: 120,
-                                  child: Text(model.tr('Salary'),
+                                  child: Text(model.locale().salary,
                                       style: const TextStyle(
                                           color: StatusModel.colorRed,
                                           fontWeight: FontWeight.bold))),
                               const SizedBox(width: 5),
                               SizedBox(
                                   width: 100,
-                                  child: Text(model.tr('Other'),
+                                  child: Text(model.locale().other,
                                       style: const TextStyle(
                                           color: StatusModel.colorRed,
                                           fontWeight: FontWeight.bold))),
                               const SizedBox(width: 5),
                               SizedBox(
                                   width: 100,
-                                  child: Text(model.tr('Selfcost'),
+                                  child: Text(model.locale().selfcost,
                                       style: const TextStyle(
                                           color: StatusModel.colorRed,
                                           fontWeight: FontWeight.bold))),
@@ -284,7 +284,7 @@ class StatusScreen extends AppScreen {
                         SizedBox(
                             width: 150,
                             child: Text(
-                              model.tr('Profit'),
+                              model.locale().profit,
                               style: const TextStyle(
                                   color: StatusModel.colorGreen,
                                   fontWeight: FontWeight.bold,
