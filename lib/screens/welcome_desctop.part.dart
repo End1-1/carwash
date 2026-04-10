@@ -51,6 +51,18 @@ extension WelcomeDesktop on WelcomeScreen {
             ),
             child: Text(prefs.string('table'),
                 style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+        TextButton.icon(
+          onPressed: () {
+            BlocProvider.of<AppAnimateBloc>(prefs.context())
+                .add(AppAnimateEvent());
+            model.navHistoryGoodsProcess();
+          },
+          icon: const Icon(Icons.history_outlined, color: Colors.white),
+          label: Text(
+            model.locale().currentOrders,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
 
         PopupMenuButton(
           icon: const Icon(Icons.settings_outlined),
@@ -192,7 +204,10 @@ extension WelcomeDesktop on WelcomeScreen {
                                 height: kButtonHeight,
                                 alignment: Alignment.center,
                                 child: globalOutlinedButton(
-                                    onPressed: model.processOrder,
+                                    onPressed: () {
+                                      if (model.isOrderBusy) return;
+                                      model.processOrder();
+                                    },
                                     title: model.locale().order),
                                   ),
                           const SizedBox(

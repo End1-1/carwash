@@ -1,7 +1,6 @@
 import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/app/question_bloc.dart';
-import 'package:carwash/screens/cashdesk.dart';
 import 'package:carwash/screens/login.dart';
 import 'package:carwash/screens/widgets/dish_basket.dart';
 import 'package:carwash/utils/prefs.dart';

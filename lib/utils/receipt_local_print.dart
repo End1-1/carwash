@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:carwash/l10n/app_localizations.dart';
 import 'package:carwash/utils/posprint.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
 /// Суммы: разделитель тысяч, без лишних дробных нулей (до 2 знаков после запятой).
@@ -355,6 +356,7 @@ Future<void> buildReceiptToCmdBuffer({
   p.br();
   p.lrtext(loc.receiptPrinted, DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()));
   p.br();
+
 }
 
 /// Список команд для POST на `print_server` (поле `print_data` в JSON).

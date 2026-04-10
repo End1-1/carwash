@@ -116,7 +116,7 @@ class _Payment extends State<Payment> {
               Expanded(
                   child: OutlinedButton(
                       onPressed: () {
-                        if (widget.readyonly) {
+                        if (widget.readyonly || widget.model.isOrderBusy) {
                           return;
                         }
                         widget.o['f_amountcash'] = 0;
@@ -138,7 +138,7 @@ class _Payment extends State<Payment> {
               Expanded(
                   child: OutlinedButton(
                       onPressed: () {
-                        if (widget.readyonly) {
+                        if (widget.readyonly || widget.model.isOrderBusy) {
                           return;
                         }
                         widget.o['f_amountcash'] = 0;
@@ -160,7 +160,7 @@ class _Payment extends State<Payment> {
               Expanded(
                   child: OutlinedButton(
                       onPressed: () {
-                        if (widget.readyonly) {
+                        if (widget.readyonly || widget.model.isOrderBusy) {
                           return;
                         }
                         widget.o['f_amountcash'] = 0;
@@ -181,7 +181,7 @@ class _Payment extends State<Payment> {
               Expanded(
                   child: OutlinedButton(
                       onPressed: () {
-                        if (widget.readyonly) {
+                        if (widget.readyonly || widget.model.isOrderBusy) {
                           return;
                         }
                         widget.o['f_amountcash'] = 0;

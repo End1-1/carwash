@@ -32,6 +32,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get printBillFailed => 'Не удалось распечатать счёт';
 
   @override
+  String get printReport => 'Печать отчёта';
+
+  @override
   String get noActiveSession => 'Нет активной смены';
 
   @override
@@ -190,6 +193,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get history => 'История';
+
+  @override
+  String get currentOrders => 'Текущие заказы';
 
   @override
   String get historyModeReport => 'Отчёт смены';

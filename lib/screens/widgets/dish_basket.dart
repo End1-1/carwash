@@ -9,19 +9,34 @@ import 'dish_qty.dart';
 
 part 'dish_basket.part.dart';
 
+int _cookingMinutes(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.round();
+  return int.tryParse(v.toString()) ?? 0;
+}
+
+String _timeWindowText(Map<String, dynamic> data) {
+  final s = '${data['f_cooking_start'] ?? ''}'.trim();
+  final e = '${data['f_cooking_end'] ?? ''}'.trim();
+  if (s.isEmpty || e.isEmpty) return '';
+  return '$s - $e';
+}
+
 class DishBasket extends StatelessWidget {
   final _width = 260.0;
   final _heigth = 190.0 + 120.0;
   final AppModel model;
-  final Map<String, dynamic> data = {};
+  /// В корзине (`mode == false`) — та же ссылка, что в [AppModel.appdata.basket], иначе +/- не попадают в заказ.
+  /// В диалоге добавления (`mode == true`) — копия, чтобы не портить строку меню.
+  final Map<String, dynamic> data;
   final bool mode;
 
-  DishBasket(Map<String, dynamic> initData, this.model, this.mode, {super.key}) {
-    data.addAll(initData);
-  }
+  DishBasket(Map<String, dynamic> initData, this.model, this.mode, {super.key})
+      : data = mode ? Map<String, dynamic>.from(initData) : initData;
 
   @override
   Widget build(BuildContext context) {
+    final locked = model.isOrderBusy;
     return Container(
         margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
         padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
@@ -65,29 +80,34 @@ class DishBasket extends StatelessWidget {
             if (data['f_cooking_time'] > 0) {
               return Row(children: [
                 IconButton(
-                  onPressed: () {
-                    data['f_cooking_time'] = data['f_cooking_time'] + 10;
+                    onPressed: locked ? null : () {
+                      var n = _cookingMinutes(data['f_cooking_time']) - 10;
+                      if (n < 10) n = 10;
+                      data['f_cooking_time'] = n;
+                      BlocProvider.of<CookingTimeBlok>(prefs.context())
+                          .add(CookingTimeUpdate());
+                      model.refreshBasketOrderWindowFromServer();
+                    },
+                    icon: const Icon(Icons.remove_circle_outline,
+                        color: Colors.white)),
+                Expanded(
+                  child: Text(
+                    '${model.locale().duration}  ${durationToString(data['f_cooking_time'], model.locale().hour, model.locale().minutesShort)}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  onPressed: locked ? null : () {
+                    final n = _cookingMinutes(data['f_cooking_time']);
+                    data['f_cooking_time'] = n + 10;
                     BlocProvider.of<CookingTimeBlok>(prefs.context())
                         .add(CookingTimeUpdate());
+                    model.refreshBasketOrderWindowFromServer();
                   },
                   icon: const Icon(Icons.add_circle_outline_outlined,
                       color: Colors.white),
                 ),
-                Text(
-                  '${model.locale().duration}  ${durationToString(data['f_cooking_time'], model.locale().hour, model.locale().minutesShort)}',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                IconButton(
-                    onPressed: () {
-                      data['f_cooking_time'] = data['f_cooking_time'] - 10;
-                      if (data['f_cooking_time'] < 10) {
-                        data['f_cookigtime'] = 10;
-                      }
-                      BlocProvider.of<CookingTimeBlok>(prefs.context())
-                          .add(CookingTimeUpdate());
-                    },
-                    icon:
-                        const Icon(Icons.remove_circle_outline, color: Colors.white)),
               ]);
             }
             return Container();
@@ -95,6 +115,13 @@ class DishBasket extends StatelessWidget {
           const SizedBox(
             height: 10,
           ),
+          if (_timeWindowText(data).isNotEmpty) ...[
+            Text(
+              _timeWindowText(data),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+          ],
           Row(
             children: [
               Text('${model.locale().price} ${data['f_price']}֏',
@@ -115,6 +142,7 @@ class DishBasket extends StatelessWidget {
                   Container(
                       constraints: BoxConstraints(maxWidth: _width / 2),
                       child: DishQty((q) {
+                        if (locked) return;
                         data['f_qty'] = q;
                         model.appdata.setItemQty(data);
                       }, data['f_qty'] ?? 1))
@@ -126,12 +154,14 @@ class DishBasket extends StatelessWidget {
                 child: mode
                     ? globalOutlinedButton(
                         onPressed: () {
+                          if (locked) return;
                           Navigator.pop(
                               Prefs.navigatorKey.currentContext!, data);
                         },
                         title: model.locale().add)
                     : globalOutlinedButton(
                         onPressed: () {
+                          if (locked) return;
                           model.appdata.removeBasketItem(data);
                         },
                         title: model.locale().remove))

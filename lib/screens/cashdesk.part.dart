@@ -7,22 +7,18 @@ class CashdeskModel {
   String sessionTitle = '';
   final sessions = <Map<String, dynamic>>[];
   final printing = <String>[];
-  int reportRequestNo = 0;
-  int lastPrintedRequestNo = 0;
+  /// Последние команды печати с сервера; отправка на принтер только по кнопке.
+  List<dynamic>? _lastPrintPayload;
 
-  CashdeskModel() {
-    print("DDDD");
-    loadReportList();
-  }
+  CashdeskModel();
 
   void onEnter() {
     // Prevent showing stale report lines from previous screen visit.
     printing.clear();
-    if (sessionId > 0) {
-      refreshReport();
-    } else {
-      loadReportList();
-    }
+    _lastPrintPayload = null;
+    // Сбросить метаданные отчёта, чтобы снова прошла цепочка get-list → get-report.
+    reportName = '';
+    loadLastSessions();
   }
 
   void loadReportList() {
@@ -30,6 +26,7 @@ class CashdeskModel {
         '/engine/v2/waiter/reports/get-list', <String, dynamic>{}));
   }
 
+  /// Сервер: `Reports::Last30Sessions` → `result.values[]` с `text` и `value` (f_id смены).
   void loadLastSessions() {
     BlocProvider.of<AppBloc>(prefs.context()).add(AppEventQueryShift(
         '/engine/v2/waiter/reports/last-30-sessions', <String, dynamic>{}));
@@ -39,7 +36,6 @@ class CashdeskModel {
     if (sessionId <= 0) {
       return;
     }
-    reportRequestNo++;
     BlocProvider.of<AppBloc>(prefs.context()).add(AppEventQueryShift(
         '/engine/v2/waiter/reports/get-report',
         <String, dynamic>{
@@ -81,7 +77,8 @@ class CashdeskModel {
       if (dv is Map && sessionId <= 0) {
         sessionId = int.tryParse('${dv['session_id']}') ?? 0;
       }
-      loadLastSessions();
+      // last-30-sessions уже выставил сессии; дальше только отчёт.
+      loadReport();
       return;
     }
     final values = data['values'];
@@ -93,18 +90,13 @@ class CashdeskModel {
         sessionId = int.tryParse('${sessions.first['value']}') ?? 0;
       }
       _updateSessionTitle();
-      loadReport();
+      // После списка смен — список отчётов (get-list), затем в ветке list — get-report.
+      loadReportList();
       return;
     }
     final p = data['printing'];
     if (p is List) {
-      if (lastPrintedRequestNo != reportRequestNo) {
-        lastPrintedRequestNo = reportRequestNo;
-        unawaited(model.sendRawPrintCommands(
-          printData: List<dynamic>.from(p),
-          showLoadingDialog: false,
-        ));
-      }
+      _lastPrintPayload = List<dynamic>.from(p);
       final visible = <String>[];
       for (final e in p) {
         final line = _renderPrintCmd(Map<String, dynamic>.from(e as Map));
@@ -152,5 +144,17 @@ class CashdeskModel {
 
   void refreshReport() {
     loadReport();
+  }
+
+  bool get hasPrintPayload =>
+      _lastPrintPayload != null && _lastPrintPayload!.isNotEmpty;
+
+  void printLastReport(AppModel model) {
+    final p = _lastPrintPayload;
+    if (p == null || p.isEmpty) return;
+    unawaited(model.sendRawPrintCommands(
+      printData: List<dynamic>.from(p),
+      showLoadingDialog: true,
+    ));
   }
 }

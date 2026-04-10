@@ -1,4 +1,4 @@
-{
+﻿{
   "printFiscalFailed": "Ошибка печати фискального чека",
   "fiscalNotConfigured": "Нет данных фискального аппарата (workstation / fiscal_machine)",
   "checkConnectionWithFiscalMachine": "Проверьте связь с фискальным аппаратом",
@@ -6,6 +6,7 @@
   "printingFiscal": "Печать фискального чека",
   "printingBill": "Печать счёта",
   "printBillFailed": "Не удалось распечатать счёт",
+  "printReport": "Печать отчёта",
   "noActiveSession": "Нет активной смены",
   "cashboxNotConfigured": "Касса не настроена (workstation / cashbox_id)",
   "openCashSessionBeforeOrder": "Сначала откройте смену на кассе",
@@ -59,6 +60,7 @@
   "process": "Процесс",
   "cashdesk": "Касса",
   "history": "История",
+  "currentOrders": "Текущие заказы",
   "historyModeReport": "Отчёт смены",
   "historyModeDoneParking": "Готово / парковка",
   "historyColCar": "Авто",

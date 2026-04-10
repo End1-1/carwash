@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var APP_VERSION = "tv-app.js 2026-04-08 queue-start-bays";
+  var APP_VERSION = "tv-app.js 2026-04-10 remove-overdue-dot";
   if (typeof console !== "undefined") {
     console.log("[tv] version:", APP_VERSION);
     console.log("[tv] console check: app.js loaded");
@@ -34,6 +34,7 @@
   var queuedOrder = [];
   var lastAllItems = [];
   var maxWashSlots = 0;
+  var maxDrySlots = 0;
   var inFlightController = null;
   var refreshTimerId = null;
 
@@ -254,18 +255,17 @@
   var paymentRequiredOkEl = document.getElementById("payment-required-ok");
 
   /**
-   * Контракт API `goods-in-progress/get` (как в ответе движка):
-   *   f_id, f_status — в корне строки;
-   *   JSON_DETAILED(ogp.f_data): f_substatus; моменты времени — см. ogpStatusSubTime (новый вид
-   *     f_status_{st}_{ss}_time и старый f_status_N_time при смене «крупного» этапа).
-   *     При f_status === 1 и без f_substatus в объекте субстатус считается 1.
-   *   f_header_data - JSON шапки; «оплачено» = f_amount_other === 0 (архив/удаление только при этом, см. headerPaidByAmountOtherZero).
-   *   f_cooking_time — минуты (SQL json_value(og.f_data,'$.f_cooking_time')) для расчёта «Старт в» и длительностей.
+   * Контракт API `goods-in-progress/get` (GoodsInProgress::get):
+   *   f_header_id, f_id, f_status, f_table, f_table_name;
+   *   f_header_data = JSON_DETAILED(oh.f_data),
+   *   f_ogp_data = JSON_DETAILED(ogp.f_data),
+   *   f_cooking_time = coalesce(json_value(og.f_data,'$.f_cooking_time'), json_value(cg.f_data,'$.f_cooking_time')).
+   * Подстатус берём из f_ogp_data.f_substatus; для f_status===1 при отсутствии поля считаем 1.
    * Допустимые пары (f_status, f_substatus): 1/1, 2/2, 2/3, 3/4, 3/5.
    */
   var KEY_ROW_ID = "f_id";
   var KEY_ROW_STATUS = "f_status";
-  var KEY_OGP_DATA = "JSON_DETAILED(ogp.f_data)";
+  var KEY_OGP_DATA = "f_ogp_data";
   var KEY_HEADER_DATA = "f_header_data";
 
   var actionBusy = false;
@@ -320,9 +320,24 @@
     if (!v) return null;
     if (typeof v === "object") return v;
     if (typeof v === "string") {
+      var s = String(v).trim();
+      // Иногда поле приходит с BOM в начале.
+      if (s.charCodeAt(0) === 0xfeff) s = s.slice(1);
       try {
-        var d = JSON.parse(v);
+        var d = JSON.parse(s);
         if (d && typeof d === "object") return d;
+        // Бывает двойное кодирование: JSON-строка внутри JSON-строки.
+        if (typeof d === "string") {
+          var s2 = d.trim();
+          if (s2 && (s2.charAt(0) === "{" || s2.charAt(0) === "[")) {
+            try {
+              var d2 = JSON.parse(s2);
+              if (d2 && typeof d2 === "object") return d2;
+            } catch (e2) {
+              // ignore nested parse errors
+            }
+          }
+        }
       } catch (e) {
         // ignore parse errors
       }
@@ -333,6 +348,48 @@
   function ogpDataStrict(item) {
     if (!item || !Object.prototype.hasOwnProperty.call(item, KEY_OGP_DATA)) return null;
     return asObj(item[KEY_OGP_DATA]);
+  }
+
+  /** Время окна заказа: только f_ogp_data.f_cooking_start / f_cooking_end. */
+  function rowStartEndFromOrderData(item) {
+    if (!item) return null;
+    var ogp = ogpDataStrict(item) || {};
+    var start = parseDateAsUtcPlus4(ogp.f_cooking_start);
+    var end = parseDateAsUtcPlus4(ogp.f_cooking_end);
+    if (!start || isNaN(start.getTime()) || !end || isNaN(end.getTime())) return null;
+    return { start: start, end: end };
+  }
+
+  function rowStartEndForDisplay(item) {
+    if (item && item.__tvLines && item.__tvLines.length) {
+      var start = null;
+      var end = null;
+      for (var i = 0; i < item.__tvLines.length; i++) {
+        var se = rowStartEndFromOrderData(item.__tvLines[i]);
+        if (!se) continue;
+        if (!start || se.start.getTime() < start.getTime()) start = se.start;
+        if (!end || se.end.getTime() > end.getTime()) end = se.end;
+      }
+      if (start && end) return { start: start, end: end };
+      return null;
+    }
+    return rowStartEndFromOrderData(item);
+  }
+
+  function statusSubForDisplay(item) {
+    if (item && item.__tvLines && item.__tvLines.length) {
+      var best = item.__tvLines[0];
+      var bestR = progressRankFromRow(best);
+      for (var i = 1; i < item.__tvLines.length; i++) {
+        var r = progressRankFromRow(item.__tvLines[i]);
+        if (r > bestR) {
+          bestR = r;
+          best = item.__tvLines[i];
+        }
+      }
+      return { st: processStatus(best), ss: processSubstatus(best) };
+    }
+    return { st: processStatus(item), ss: processSubstatus(item) };
   }
 
   /**
@@ -391,19 +448,38 @@
     return numAmt(o) === 0;
   }
 
+  /** Оплата по "реальным" методам: cash/card/idram > 0 (в f_header_data). */
+  function headerHasRealPayment(item) {
+    var hdr = headerDataStrict(item);
+    if (!hdr) return false;
+    var cash = hdr.f_amount_cash;
+    if (cash == null) cash = hdr.f_amountcash;
+    var card = hdr.f_amount_card;
+    if (card == null) card = hdr.f_amountcard;
+    var idram = hdr.f_amount_idram;
+    if (idram == null) idram = hdr.f_amountidram;
+    return numAmt(cash) > 0 || numAmt(card) > 0 || numAmt(idram) > 0;
+  }
+
   /** Архив 4/1 разрешён только если заказ оплачен (f_amount_other === 0). */
   function archiveStatusRequiresPaidOrder(status, substatus) {
     return Number(status) === 4 && Number(substatus) === 1;
   }
 
   /**
-   * Подстатус только из JSON_DETAILED(ogp.f_data).f_substatus; для очереди (f_status===1)
+   * Подстатус только из f_ogp_data.f_substatus; для очереди (f_status===1)
    * сервер может не присылать поле — тогда 1.
    */
   function resolvedSubstatusFromRow(row) {
     var st = parseInt(row[KEY_ROW_STATUS], 10);
     var ogp = ogpDataStrict(row);
-    if (!ogp || isNaN(st)) return NaN;
+    if (isNaN(st)) return NaN;
+    // Для очереди достаточно самого f_status==1: даже при битом/пустом JSON OGP
+    // карточка должна попасть в колонку «Ожидают».
+    if (!ogp) {
+      if (st === 1) return 1;
+      return NaN;
+    }
     if (ogp.f_substatus != null && ogp.f_substatus !== "") {
       var ss = parseInt(ogp.f_substatus, 10);
       if (!isNaN(ss)) return ss;
@@ -476,7 +552,7 @@
           reason: "nan_status",
           f_status: row[KEY_ROW_STATUS],
           f_substatus_resolved: ss,
-          note: "substatus from JSON_DETAILED(ogp.f_data).f_substatus or 1 when f_status===1"
+          note: "substatus from f_ogp_data.f_substatus or 1 when f_status===1"
         };
       }
       if (!isKnownProcessPair(st, ss)) {
@@ -511,6 +587,7 @@
     if (s === 2 && u === 3) return tr("btn_dry");
     if (s === 3 && u === 4) return tr("btn_done");
     if (s === 3 && u === 5) return tr("btn_parking");
+    if (s === 4 && u === 6) return tr("btn_deliver");
     if (s === 4 && u === 1) return tr("status_archive_row");
     return String(status) + "/" + String(substatus);
   }
@@ -625,6 +702,12 @@
     return 0;
   }
 
+  // Для выбора "главной" строки в сгруппированном заказе:
+  // чем больше rank, тем "позднее" стадия процесса.
+  function progressRankFromRow(item) {
+    return orderProgress(item);
+  }
+
   /**
    * Минуты с перехода в «выполнено» (3/4): ogpStatusSubTime(..., 3, 4). Без времени — null.
    */
@@ -643,9 +726,62 @@
   }
 
   function shouldBlinkDone34Row(item) {
+    if (item && item.__tvLines && item.__tvLines.length) {
+      for (var i = 0; i < item.__tvLines.length; i++) {
+        var m = minutesSinceEnteredDone34(item.__tvLines[i]);
+        if (m != null && isFinite(m) && m >= DONE34_BLINK_AFTER_MINUTES) return true;
+      }
+      return false;
+    }
     var m = minutesSinceEnteredDone34(item);
     if (m == null || !isFinite(m)) return false;
     return m >= DONE34_BLINK_AFTER_MINUTES;
+  }
+
+  /** Лимит минут для фазы мойки (2/2): f_washtime или доля от cook, как в projectedBayFreeMsActiveWash. */
+  function washMinutesBudgetForBlink(row) {
+    var cook = cookingMinutesFromRow(row);
+    var dObj = ogpDataStrict(row);
+    if (!dObj) return cook;
+    var washM = Number(dObj.f_washtime) || 0;
+    var dryM = Number(dObj.f_drytime) || 0;
+    if (washM > 0) return washM;
+    if (washM + dryM > 0) return Math.max(1, cook - dryM);
+    return cook;
+  }
+
+  /** Лимит минут для фазы сушки (2/3). */
+  function dryMinutesBudgetForBlink(row) {
+    var cook = cookingMinutesFromRow(row);
+    var dObj = ogpDataStrict(row);
+    if (!dObj) return cook;
+    var washM = Number(dObj.f_washtime) || 0;
+    var dryM = Number(dObj.f_drytime) || 0;
+    if (dryM > 0) return dryM;
+    if (washM + dryM > 0) return Math.max(1, cook - washM);
+    return cook;
+  }
+
+  function shouldBlinkWashDryOvertimeSingle(row) {
+    if (!row) return false;
+    var st = processStatus(row);
+    var ss = processSubstatus(row);
+    if (st !== 2 || (ss !== 2 && ss !== 3)) return false;
+    var mins = minutesSinceOgpPair(row, st, ss);
+    if (mins == null || !isFinite(mins)) return false;
+    if (ss === 2) return mins >= washMinutesBudgetForBlink(row);
+    return mins >= dryMinutesBudgetForBlink(row);
+  }
+
+  /** Мигание 2/2 и 2/3, если время в текущей фазе превысило расчётное (cook / washtime / drytime). */
+  function shouldBlinkWashDryOvertimeRow(item) {
+    if (item && item.__tvLines && item.__tvLines.length) {
+      for (var i = 0; i < item.__tvLines.length; i++) {
+        if (shouldBlinkWashDryOvertimeSingle(item.__tvLines[i])) return true;
+      }
+      return false;
+    }
+    return shouldBlinkWashDryOvertimeSingle(item);
   }
 
   /** Same idea as Flutter global.dart washMinutesSince */
@@ -921,6 +1057,9 @@
 
   function getKey(item, index) {
     if (!item) return "idx:" + index;
+    if (item.__tvIsGroup && item.__tvLineIds && item.__tvLineIds.length) {
+      return "grp:" + headerKeyForRow(item);
+    }
     if (item[KEY_ROW_ID] != null && item[KEY_ROW_ID] !== "") {
       return "id:" + String(item[KEY_ROW_ID]);
     }
@@ -961,55 +1100,63 @@
   }
 
   function patchRow(rowEl, item, isQueued) {
-    var headerData = headerDataStrict(item) || {};
+    var disp = effectiveRowForDisplay(item) || item;
+    var headerData = headerDataStrict(disp) || {};
     var car = safeText(
-      item.f_carnumber ||
-        item.f_car_number ||
+      disp.f_carnumber ||
+        disp.f_car_number ||
         headerData.f_car_number ||
         "---"
     );
     var table = safeText(
-      item.f_tablename ||
-        item.f_table_name ||
-        (item.f_daily_number != null ? "#" + safeText(item.f_daily_number) : "") ||
-        ("BOX " + safeText(item.f_table || ""))
+      disp.f_tablename ||
+        disp.f_table_name ||
+        (disp.f_daily_number != null ? "#" + safeText(disp.f_daily_number) : "") ||
+        ("BOX " + safeText(disp.f_table || ""))
     ).trim();
 
-    // Show just the first item line to keep it "TV-light".
-    var firstItem = null;
-    if (item && Array.isArray(item.f_items) && item.f_items.length) firstItem = item.f_items[0];
-
-    var service = "";
-    if (firstItem) {
-      // pendingWidget uses f_part2name, in progressWidget uses f_part1name.
-      var part = safeText(firstItem.f_part1name || firstItem.f_part2name || "");
-      var dish = safeText(firstItem.f_dishname || firstItem.f_dish || "");
-      service = (part + (part && dish ? " " : "") + dish).trim();
+    var service = item.__tvCombinedService || "";
+    if (!service) {
+      var lbl = serviceLabelFromRow(disp);
+      service = lbl || tr("service_default");
     }
-    if (!service) service = safeText(item.f_name || item.f_goods_name || "");
-    if (!service) service = tr("service_default");
 
     rowEl.classList.remove(
       "row-pending",
       "row-inprog-wash",
       "row-inprog-ok",
       "is-queued",
-      "row-blink-done34"
+      "row-blink-done34",
+      "row-blink-washdry-overtime"
     );
     if (isQueued) {
       rowEl.classList.add("row-pending");
     } else {
-      var pst = processStatus(item);
-      var pss = processSubstatus(item);
+      var pst = processStatus(disp);
+      var pss = processSubstatus(disp);
       if (pst === 2 && pss === 2) rowEl.classList.add("row-inprog-wash");
       else rowEl.classList.add("row-inprog-ok");
       if (shouldBlinkDone34Row(item)) {
         rowEl.classList.add("row-blink-done34");
       }
+      if (shouldBlinkWashDryOvertimeRow(item)) {
+        rowEl.classList.add("row-blink-washdry-overtime");
+      }
     }
 
-    rowEl.querySelector(".number").textContent = car;
-    rowEl.querySelector(".service").textContent = service;
+    var numEl = rowEl.querySelector(".number");
+    if (numEl) {
+      numEl.textContent = car;
+      // Оплаченный заказ: выделяем номер машины квадратным бейджем.
+      numEl.classList.toggle("number--paid-square", headerPaidByAmountOtherZero(disp));
+    }
+    var svcEl = rowEl.querySelector(".service");
+    svcEl.textContent = service;
+    if (item.__tvIsGroup && String(service).indexOf("\n") >= 0) {
+      svcEl.classList.add("service--multi");
+    } else {
+      svcEl.classList.remove("service--multi");
+    }
     rowEl.querySelector(".table").textContent = table
       ? tr("post_prefix") + " " + table
       : tr("post_prefix") + " " + tr("post_empty");
@@ -1022,7 +1169,7 @@
 
     var iconEl = rowEl.querySelector(".status-icon");
     if (iconEl) {
-      var iconUrl = resolveStatusIconUrl(item, isQueued);
+      var iconUrl = resolveStatusIconUrl(disp, isQueued);
       if (iconUrl) {
         iconEl.src = iconUrl;
         iconEl.style.display = "";
@@ -1144,6 +1291,35 @@
     return 0;
   }
 
+  /** Боксы сушки: `dry` рядом с `tables` в ответе goods-in-progress/get. */
+  function tryExtractDryCount(json) {
+    function len(v) {
+      return Array.isArray(v) ? v.length : 0;
+    }
+    if (!json) return 0;
+    if (len(json.dry) > 0) return len(json.dry);
+    if (json.data) {
+      if (len(json.data.dry) > 0) return len(json.data.dry);
+      if (Array.isArray(json.data) && json.data.length > 0) {
+        var first = json.data[0];
+        if (first && typeof first === "object") {
+          if (len(first.dry) > 0) return len(first.dry);
+          if (len(first.data && first.data.dry) > 0) return len(first.data.dry);
+        }
+        if (typeof first === "string") {
+          try {
+            var decoded = JSON.parse(first);
+            if (len(decoded.dry) > 0) return len(decoded.dry);
+            if (len(decoded.data && decoded.data.dry) > 0) return len(decoded.data.dry);
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+    }
+    return 0;
+  }
+
   function isWashTransition(status, substatus) {
     return Number(status) === 2 && Number(substatus) === 2;
   }
@@ -1153,6 +1329,19 @@
     for (var i = 0; i < items.length; i++) {
       var it = items[i] || {};
       if (processStatus(it) === 2 && processSubstatus(it) === 2) c++;
+    }
+    return c;
+  }
+
+  function isDryTransition(status, substatus) {
+    return Number(status) === 2 && Number(substatus) === 3;
+  }
+
+  function countDryInProgress(items) {
+    var c = 0;
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i] || {};
+      if (processStatus(it) === 2 && processSubstatus(it) === 3) c++;
     }
     return c;
   }
@@ -1175,6 +1364,211 @@
       return pendingQueueTimeMs(a) - pendingQueueTimeMs(b);
     });
     return arr;
+  }
+
+  /** Ключ заказа: приоритет `f_header_id` (новый API), затем legacy `f_header`, иначе `f_id`. */
+  function headerKeyForRow(row) {
+    if (!row) return "id:0";
+    var v = row.f_header_id != null ? row.f_header_id : row.f_header;
+    var s = v != null ? String(v).trim() : "";
+    if (s && s !== "0") return "h:" + s;
+    return "id:" + String(processId(row) || "0");
+  }
+
+  /** Текст услуги для одной строки API (как в patchRow). */
+  function serviceLabelFromRow(row) {
+    if (!row) return "";
+    var firstItem = null;
+    if (Array.isArray(row.f_items) && row.f_items.length) firstItem = row.f_items[0];
+    var service = "";
+    if (firstItem) {
+      var part = safeText(firstItem.f_part1name || firstItem.f_part2name || "");
+      var dish = safeText(firstItem.f_dishname || firstItem.f_dish || "");
+      service = (part + (part && dish ? " " : "") + dish).trim();
+    }
+    if (!service) service = safeText(row.f_name || row.f_goods_name || "");
+    return service.trim();
+  }
+
+  /** Время входа в текущую фазу (st/ss) — для сортировки «в работе» по возрастанию. */
+  function inProgressEnteredAtMs(item) {
+    if (!item) return Number.MAX_SAFE_INTEGER;
+    var st = processStatus(item);
+    var ss = processSubstatus(item);
+    var dObj = ogpDataStrict(item);
+    var raw = ogpStatusSubTime(dObj, st, ss);
+    if (raw == null || raw === "") return Number.MAX_SAFE_INTEGER;
+    var d = parseDateAsUtcPlus4(raw);
+    if (!d || isNaN(d.getTime())) return Number.MAX_SAFE_INTEGER;
+    return d.getTime();
+  }
+
+  /**
+   * Порядок на табло: сначала мойка (2/2), потом сушка (2/3), затем готово/парковка.
+   * Иначе при сортировке только по времени сушка (вошла в фазу раньше по часам) оказывается выше мойки.
+   */
+  function inProgressPhaseRank(row) {
+    if (!row) return 99;
+    var st = processStatus(row);
+    var ss = processSubstatus(row);
+    if (st === 2 && ss === 2) return 0;
+    if (st === 2 && ss === 3) return 1;
+    if (st === 3 && ss === 4) return 2;
+    if (st === 3 && ss === 5) return 3;
+    return 50;
+  }
+
+  function inProgressSortKeyForItem(item) {
+    var row = item && item.__tvRepresentative ? item.__tvRepresentative : item;
+    return {
+      rank: inProgressPhaseRank(row),
+      t: inProgressEnteredAtMs(row)
+    };
+  }
+
+  function compareInProgressItems(a, b) {
+    var ka = inProgressSortKeyForItem(a);
+    var kb = inProgressSortKeyForItem(b);
+    if (ka.rank !== kb.rank) return ka.rank - kb.rank;
+    return ka.t - kb.t;
+  }
+
+  function sortInProgressAscending(list) {
+    var arr = list.slice();
+    arr.sort(compareInProgressItems);
+    return arr;
+  }
+
+  function pendingGroupSortKeyMs(item) {
+    if (item && item.__tvLines && item.__tvLines.length) {
+      var m = Number.MAX_SAFE_INTEGER;
+      for (var i = 0; i < item.__tvLines.length; i++) {
+        m = Math.min(m, pendingQueueTimeMs(item.__tvLines[i]));
+      }
+      return m;
+    }
+    return pendingQueueTimeMs(item);
+  }
+
+  function sortPendingGroupsOldestFirst(groups) {
+    var arr = groups.slice();
+    arr.sort(function (a, b) {
+      return pendingGroupSortKeyMs(a) - pendingGroupSortKeyMs(b);
+    });
+    return arr;
+  }
+
+  function sortInProgressGroupsAscending(groups) {
+    var arr = groups.slice();
+    arr.sort(compareInProgressItems);
+    return arr;
+  }
+
+  /**
+   * Несколько строк `o_goods_process` с одним шапочным id — один заказ, одна карточка.
+   * Статус меняется для каждой строки последовательно (postStatusChange).
+   */
+  function groupRowsByHeader(rows, pickPrimary) {
+    var map = Object.create(null);
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i] || {};
+      var k = headerKeyForRow(r);
+      if (!map[k]) map[k] = [];
+      map[k].push(r);
+    }
+    var keys = Object.keys(map);
+    var out = [];
+    for (var j = 0; j < keys.length; j++) {
+      var lines = map[keys[j]];
+      if (lines.length === 1) {
+        out.push(lines[0]);
+        continue;
+      }
+      lines.sort(function (a, b) {
+        var sa = String(processId(a) || "");
+        var sb = String(processId(b) || "");
+        var na = parseInt(sa, 10);
+        var nb = parseInt(sb, 10);
+        if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+        return sa.localeCompare(sb);
+      });
+      var primary = pickPrimary ? pickPrimary(lines) : lines[0];
+      var parts = [];
+      for (var p = 0; p < lines.length; p++) {
+        var lbl = serviceLabelFromRow(lines[p]);
+        if (lbl) parts.push(lbl);
+      }
+      var combined = parts.length ? parts.join("\n") : tr("service_default");
+      var merged = Object.assign({}, primary);
+      merged.__tvIsGroup = true;
+      merged.__tvLines = lines.slice();
+      merged.__tvLineIds = lines.map(processId);
+      merged.__tvRepresentative = primary;
+      merged.__tvCombinedService = combined;
+      out.push(merged);
+    }
+    return out;
+  }
+
+  function pickPrimaryPending(lines) {
+    var best = lines[0];
+    var bestT = pendingQueueTimeMs(best);
+    for (var i = 1; i < lines.length; i++) {
+      var t = pendingQueueTimeMs(lines[i]);
+      if (t < bestT) {
+        bestT = t;
+        best = lines[i];
+      }
+    }
+    return best;
+  }
+
+  function pickPrimaryInProgress(lines) {
+    var best = lines[0];
+    var bestT = inProgressEnteredAtMs(best);
+    for (var i = 1; i < lines.length; i++) {
+      var t = inProgressEnteredAtMs(lines[i]);
+      if (t < bestT) {
+        bestT = t;
+        best = lines[i];
+      }
+    }
+    return best;
+  }
+
+  /** Строки заказа для смены статуса (сырой объект или группа). */
+  function linesForOrderAction(order) {
+    if (order && order.__tvLines && order.__tvLines.length) return order.__tvLines;
+    return [order];
+  }
+
+  function countLinesEnteringWash(order, status, substatus) {
+    if (!(Number(status) === 2 && Number(substatus) === 2)) return 0;
+    var lines = linesForOrderAction(order);
+    var c = 0;
+    for (var i = 0; i < lines.length; i++) {
+      var st = processStatus(lines[i]);
+      var ss = processSubstatus(lines[i]);
+      if (!(st === 2 && ss === 2)) c++;
+    }
+    return c;
+  }
+
+  function countLinesEnteringDry(order, status, substatus) {
+    if (!(Number(status) === 2 && Number(substatus) === 3)) return 0;
+    var lines = linesForOrderAction(order);
+    var c = 0;
+    for (var i = 0; i < lines.length; i++) {
+      var st = processStatus(lines[i]);
+      var ss = processSubstatus(lines[i]);
+      if (!(st === 2 && ss === 3)) c++;
+    }
+    return c;
+  }
+
+  function effectiveRowForDisplay(item) {
+    if (item && item.__tvRepresentative) return item.__tvRepresentative;
+    return item;
   }
 
   /** Минуты по строке API (json_value … f_cooking_time); иначе washtime+drytime из ogp.f_data. */
@@ -1328,42 +1722,34 @@
 
   /**
    * Колонка времени в строке:
-   * 1/1 — «Старт в» + расчёт старта/конца (очередь, боксы, f_cooking_time);
-   * 2/2, 2/3 — длительность текущего этапа;
+   * 1/1, 2/2, 2/3 — окно из f_ogp_data.f_cooking_start/f_cooking_end (задаётся при принятии заказа);
    * 3/4 — минуты до мигания (40 − время в статусе);
-   * 3/5 — «до паркинга» + время в статусе (дни/часы).
+   * >2 (кроме 3/4) — сколько осталось до завершения по f_cooking_end.
+   * Без f_cooking_start/f_cooking_end для 1/* и 2/* показываем "--:--" (без локального авто-расчёта).
    */
   function formatRowTimeDisplay(item, isQueued, allItems, maxSlots) {
     if (!item) return "--:--";
-    var st = processStatus(item);
-    var ss = processSubstatus(item);
-    var B = Math.max(1, maxSlots | 0);
+    var pair = statusSubForDisplay(item);
+    var st = pair.st;
+    var ss = pair.ss;
+    var se = rowStartEndForDisplay(item);
 
     if (st === 1 && ss === 1 && isQueued) {
-      var cook = cookingMinutesFromRow(item);
-      var startMs = scheduledStartMsForQueueItem(item, allItems || [], B);
-      if (startMs == null || !isFinite(startMs)) return "--:--";
-      var endMs = startMs + cook * 60000;
+      if (!(se && se.start && se.end)) return "--:--";
       return (
         tr("time_start_in") +
         " " +
-        formatHmFromMs(startMs) +
+        formatHmFromMs(se.start.getTime()) +
         " — " +
-        formatHmFromMs(endMs)
+        formatHmFromMs(se.end.getTime())
       );
     }
 
     if (st === 2 && (ss === 2 || ss === 3)) {
-      var minsSt = minutesSinceOgpPair(item, st, ss);
-      if (minsSt == null || !isFinite(minsSt)) return "--:--";
-      var m = Math.floor(minsSt);
-      var h = Math.floor(m / 60);
-      var r = m % 60;
-      var dur =
-        h > 0
-          ? tr("time_elapsed_hm", { h: h, m: r })
-          : tr("time_elapsed_m", { m: m });
-      return tr("time_duration_prefix") + dur;
+      if (!(se && se.start && se.end)) return "--:--";
+      var leftM2 = (se.end.getTime() - Date.now()) / 60000;
+      var leftMin2 = Math.max(0, Math.ceil(leftM2));
+      return tr("time_left_prefix") + tr("time_elapsed_m", { m: leftMin2 });
     }
 
     if (st === 3 && ss === 4) {
@@ -1374,27 +1760,51 @@
       return tr("time_until_blink", { min: Math.max(1, Math.ceil(left)) });
     }
 
-    if (st === 3 && ss === 5) {
-      var m35 = minutesSinceOgpPair(item, 3, 5);
-      if (m35 == null || !isFinite(m35)) return "--:--";
-      return tr("time_parking_prefix") + formatElapsedParts(m35);
+    if (st > 2) {
+      if (!(se && se.end)) return "--:--";
+      var leftM = (se.end.getTime() - Date.now()) / 60000;
+      var leftMin = Math.max(0, Math.ceil(leftM));
+      return tr("time_left_prefix") + tr("time_elapsed_m", { m: leftMin });
     }
 
     return "--:--";
   }
 
   function splitByProgress(items) {
-    // 1/1 — ожидание (левая колонка «ожидают»); 2/* и 3/* — в работе (после validateProcessListRows)
+    // Любой f_status==1 — «Ожидают» (даже если substatus не распарсился),
+    // 2/* и 3/* — «В работе».
     var inProgress = [];
     var pending = [];
     for (var i = 0; i < items.length; i++) {
       var item = items[i] || {};
       var st = processStatus(item);
       var ss = processSubstatus(item);
-      if (st === 1 && ss === 1) pending.push(item);
+      if (st === 1) pending.push(item);
       else if (st === 2 || st === 3) inProgress.push(item);
     }
     return { inProgress: inProgress, pending: sortPendingOldestFirst(pending) };
+  }
+
+  /** Мягкая фильтрация: не валим весь экран из-за одной плохой строки. */
+  function isDisplayableRow(row) {
+    if (!row || typeof row !== "object") return false;
+    var st = processStatus(row);
+    if (st === 1) return true;
+    var ss = processSubstatus(row);
+    if (st === 2) return ss === 2 || ss === 3;
+    if (st === 3) return ss === 4 || ss === 5;
+    return false;
+  }
+
+  function rowFilterReason(row) {
+    if (!row || typeof row !== "object") return "row_not_object";
+    var st = processStatus(row);
+    var ss = processSubstatus(row);
+    if (isNaN(st)) return "nan_status";
+    if (st === 1) return "";
+    if (st === 2 && (ss === 2 || ss === 3)) return "";
+    if (st === 3 && (ss === 4 || ss === 5)) return "";
+    return "unsupported_pair_" + String(st) + "/" + String(ss);
   }
 
   function markUpdated() {
@@ -1522,8 +1932,15 @@
     var pr = orderProgress(order);
     var hdr = headerDataStrict(order) || {};
     var car = safeText(order.f_carnumber || order.f_car_number || hdr.f_car_number || "---");
+    var boxNo = safeText(order.f_table || "").trim();
     dialogTitleEl.textContent =
-      car + " · " + safeText(order.f_tablename || order.f_table_name || "BOX " + order.f_table);
+      car +
+      " · " +
+      safeText(
+        order.f_tablename ||
+          order.f_table_name ||
+          (boxNo ? "BOX " + boxNo : tr("post_empty"))
+      );
     dialogButtonsEl.textContent = "";
 
     function addBtn(label, handler) {
@@ -1538,7 +1955,7 @@
       dialogButtonsEl.appendChild(b);
     }
 
-    // 1/1 ожидание → 2/2 мойка; 2/2 → 2/3 сушка или сразу 3/4; 2/3 → 3/4 или 3/5
+    // 1/1 → 2/2 или 2/3; 2/2 ↔ 2/3 ↔ 1 свободно; 2/2|2/3 → 3/4|3/5 как раньше
     if (pr === 2 || pr === 3) {
       addBtn(tr("btn_suspend"), function () {
         postStatusChange(order, 1, 1);
@@ -1547,6 +1964,9 @@
     if (pr === 1) {
       addBtn(tr("btn_wash"), function () {
         postStatusChange(order, 2, 2);
+      });
+      addBtn(tr("btn_dry"), function () {
+        postStatusChange(order, 2, 3);
       });
     }
     if (pr === 2) {
@@ -1558,6 +1978,9 @@
       });
     }
     if (pr === 3) {
+      addBtn(tr("btn_wash"), function () {
+        postStatusChange(order, 2, 2);
+      });
       addBtn(tr("btn_done"), function () {
         postStatusChange(order, 3, 4);
       });
@@ -1570,15 +1993,11 @@
         postStatusChange(order, 3, 5);
       });
     }
-    if (
-      (st0 === 1 || st0 === 2 || st0 === 3) &&
-      headerPaidByAmountOtherZero(order)
-    ) {
-      addBtn(tr("btn_remove"), function () {
-        postStatusChange(order, 4, 1);
+    if (Number(st0) === 3 && headerHasRealPayment(order)) {
+      addBtn(tr("btn_deliver"), function () {
+        postStatusChange(order, 4, 6);
       });
     }
-
     overlayEl.style.display = "flex";
     overlayEl.setAttribute("aria-hidden", "false");
   }
@@ -1587,10 +2006,19 @@
     if (actionBusy) return;
     if (isWashTransition(status, substatus) && maxWashSlots > 0) {
       var currentWash = countWashInProgress(lastAllItems);
-      var alreadyWash = processStatus(order) === 2 && processSubstatus(order) === 2;
-      var nextWash = currentWash + (alreadyWash ? 0 : 1);
+      var enteringWash = countLinesEnteringWash(order, status, substatus);
+      var nextWash = currentWash + enteringWash;
       if (nextWash > maxWashSlots) {
         openLimitModal(tr("err_wash_limit", { max: maxWashSlots }));
+        return;
+      }
+    }
+    if (isDryTransition(status, substatus) && maxDrySlots > 0) {
+      var currentDry = countDryInProgress(lastAllItems);
+      var enteringDry = countLinesEnteringDry(order, status, substatus);
+      var nextDry = currentDry + enteringDry;
+      if (nextDry > maxDrySlots) {
+        openLimitModal(tr("err_dry_limit", { max: maxDrySlots }), "dry_limit_title");
         return;
       }
     }
@@ -1614,40 +2042,54 @@
       }
       actionBusy = true;
       setStatusLine(tr("status_pending"));
-      var pid = processId(order);
-      if (pid == null || String(pid).trim() === "") {
+      var ids = [];
+      if (order.__tvLineIds && order.__tvLineIds.length) {
+        ids = order.__tvLineIds.slice();
+      } else {
+        var one = processId(order);
+        if (one != null && String(one).trim() !== "") ids = [one];
+      }
+      if (!ids.length) {
         logDebug("status.request.missing_id.keys", Object.keys(order || {}));
         logDebug("status.request.missing_id.order", order);
         setStatusLine(tr("err_status"));
         actionBusy = false;
         return;
       }
-      var payload = withAuthPayload({
-        id: pid,
-        status: status,
-        substatus: substatus
-      });
-      logDebug("status.request", payload);
-      doPost(STATUS_URL, payload, REQUEST_TIMEOUT_MS, true)
-        .then(function (json) {
-          logDebug("status.response", json);
-          if (json && json.status === 1) {
-            closeActionModal();
-            refresh();
-            setStatusLine(tr("ok_status"));
-            return;
-          }
-          var msg =
-            (json && (json.data || json.error || json.message)) || tr("err_status");
-          setStatusLine(String(msg));
-        })
-        .catch(function (e) {
-          logDebug("status.error", String(e && e.message ? e.message : e));
-          setStatusLine(tr("err_status"));
-        })
-        .then(function () {
+
+      function postNextId(idx) {
+        if (idx >= ids.length) {
           actionBusy = false;
+          closeActionModal();
+          refresh();
+          setStatusLine(tr("ok_status"));
+          return;
+        }
+        var payload = withAuthPayload({
+          id: ids[idx],
+          status: status,
+          substatus: substatus
         });
+        logDebug("status.request", payload);
+        doPost(STATUS_URL, payload, REQUEST_TIMEOUT_MS, true)
+          .then(function (json) {
+            logDebug("status.response", json);
+            if (json && json.status === 1) {
+              postNextId(idx + 1);
+              return;
+            }
+            var msg =
+              (json && (json.data || json.error || json.message)) || tr("err_status");
+            setStatusLine(String(msg));
+            actionBusy = false;
+          })
+          .catch(function (e) {
+            logDebug("status.error", String(e && e.message ? e.message : e));
+            setStatusLine(tr("err_status"));
+            actionBusy = false;
+          });
+      }
+      postNextId(0);
     });
   }
 
@@ -1847,10 +2289,12 @@
         var all = tryDecodeProcessListPayload(json);
         lastAllItems = Array.isArray(all) ? all : [];
         maxWashSlots = tryExtractTablesCount(json);
+        maxDrySlots = tryExtractDryCount(json);
         logDebug("response.parsedList", {
           count: all.length,
           first: all.length ? all[0] : null,
-          tables: maxWashSlots
+          tables: maxWashSlots,
+          dry: maxDrySlots
         });
         if (DEBUG_LOG && typeof console !== "undefined") {
           try {
@@ -1864,40 +2308,72 @@
         }
         var vr = validateProcessListRows(all);
         if (!vr.ok) {
-          logDebug("response.schema_invalid", vr);
-          showSchemaError(vr);
-          setStatusLine(tr("err_schema_short"));
-          lastAllItems = [];
-          activeCache = Object.create(null);
-          queuedCache = Object.create(null);
-          activeOrder.length = 0;
-          queuedOrder.length = 0;
-          setEmptyState(activeListEl);
-          setEmptyState(queuedListEl);
-          markUpdated();
-          return;
+          // Не блокируем UI целиком: отбрасываем только неподходящие строки.
+          logDebug("response.schema_invalid_soft", vr);
+        } else {
+          hideSchemaError();
         }
-        hideSchemaError();
-        var split = splitByProgress(all);
-        logDebug("response.split", {
-          inProgress: split.inProgress.length,
-          pending: split.pending.length
-        });
+        var cleaned = [];
+        for (var ci = 0; ci < all.length; ci++) {
+          var r = all[ci];
+          var reason = rowFilterReason(r);
+          if (!reason) {
+            cleaned.push(r);
+          } else if (DEBUG_LOG && typeof console !== "undefined") {
+            try {
+              console.warn("[tv] row.filtered_out", {
+                index: ci,
+                reason: reason,
+                f_id: r && r.f_id,
+                f_header_id: r && r.f_header_id,
+                f_status: r && r.f_status,
+                f_substatus: r && (asObj(r.f_ogp_data) || {}).f_substatus
+              });
+            } catch (e) {
+              // ignore
+            }
+          }
+        }
         if (DEBUG_LOG && typeof console !== "undefined") {
           try {
-            console.log("[tv] response.inProgress.full", split.inProgress);
-            console.log("[tv] response.pending.full", split.pending);
+            console.log("[tv] rows.summary", {
+              total: all.length,
+              displayable: cleaned.length,
+              pending_by_status: cleaned.filter(function (x) { return processStatus(x) === 1; }).length,
+              in_progress_by_status: cleaned.filter(function (x) { var s = processStatus(x); return s === 2 || s === 3; }).length
+            });
           } catch (e) {
             // ignore
           }
         }
-        updateColumn(activeListEl, activeCache, activeOrder, split.inProgress, false);
-        updateColumn(queuedListEl, queuedCache, queuedOrder, split.pending, true);
+        lastAllItems = cleaned;
+        var split = splitByProgress(cleaned);
+        var pendingGrouped = groupRowsByHeader(split.pending, pickPrimaryPending);
+        var pendingDisplay = sortPendingGroupsOldestFirst(pendingGrouped);
+        var inProgSorted = sortInProgressAscending(split.inProgress);
+        var inProgGrouped = groupRowsByHeader(inProgSorted, pickPrimaryInProgress);
+        var inProgDisplay = sortInProgressGroupsAscending(inProgGrouped);
+        logDebug("response.split", {
+          inProgress: inProgDisplay.length,
+          pending: pendingDisplay.length,
+          inProgressRows: split.inProgress.length,
+          pendingRows: split.pending.length
+        });
+        if (DEBUG_LOG && typeof console !== "undefined") {
+          try {
+            console.log("[tv] response.inProgress.display", inProgDisplay);
+            console.log("[tv] response.pending.display", pendingDisplay);
+          } catch (e) {
+            // ignore
+          }
+        }
+        updateColumn(activeListEl, activeCache, activeOrder, inProgDisplay, false);
+        updateColumn(queuedListEl, queuedCache, queuedOrder, pendingDisplay, true);
         markUpdated();
         setStatusLine(
           tr("ok_counts", {
-            inProgress: split.inProgress.length,
-            pending: split.pending.length
+            inProgress: inProgDisplay.length,
+            pending: pendingDisplay.length
           })
         );
       })

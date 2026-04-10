@@ -1,4 +1,4 @@
-{
+﻿{
   "printFiscalFailed": "ՀԴՄ չի տպվել",
   "fiscalNotConfigured": "ՀԴՄ տվյալները բացակայում են (workstation / fiscal_machine)",
   "checkConnectionWithFiscalMachine": "Ստուգեք կապը ՀԴՄ սարքի հետ",
@@ -6,7 +6,8 @@
   "printingFiscal": "ՀԴՄ կտրոնի տպում",
   "printingBill": "Հաշվի տպում",
   "printBillFailed": "Հաշիվը չտպվեց",
-  "noActiveSession": "Ակտիվ հաշվեհամար չկա",
+  "printReport": "Տպել հաշվետվությունը",
+  "noActiveSession": "Ակտիվ հերթափոխ չկա",
   "cashboxNotConfigured": "Դրամարկղը կարգավորված չէ (workstation / cashbox_id)",
   "openCashSessionBeforeOrder": "Նախ բացեք հերթափոխը",
   "startNewShift": "Սկսել նոր հերթափոխ",
@@ -59,6 +60,7 @@
   "process": "Գործընթաց",
   "cashdesk": "Դրամարկղ",
   "history": "Պատմություն",
+  "currentOrders": "Ընթացիկ պատվերներ",
   "historyModeReport": "Փոխի հաշվետվություն",
   "historyModeDoneParking": "Ավարտված / կայան",
   "historyColCar": "Ավտո",

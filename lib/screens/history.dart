@@ -9,15 +9,20 @@ import 'package:carwash/screens/history_pay_dialog.dart';
 import 'package:carwash/utils/prefs.dart';
 import 'package:carwash/widgets/dialogs.dart';
 import 'package:carwash/widgets/loading.dart';
+import 'package:carwash/utils/web_query.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'history.part.dart';
 
 class HistoryScreen extends AppScreen {
-  final _model = HistoryModel();
+  final HistoryModel _model;
 
-  HistoryScreen(super.model, {super.key});
+  HistoryScreen(
+    super.model, {
+    super.key,
+    HistoryViewMode initialMode = HistoryViewMode.report,
+  }) : _model = HistoryModel(initialMode: initialMode);
 
   void reloadGoodsProcess() => _model.loadGoodsProcess();
 
@@ -197,6 +202,7 @@ class HistoryScreen extends AppScreen {
                 DataColumn(label: Text(l10n.historyColDaily)),
                 DataColumn(label: Text(l10n.historyColStatus)),
                 DataColumn(label: Text(l10n.historyPay)),
+                DataColumn(label: Text(l10n.cancel)),
               ],
               rows: _model.goodsRows.map((r) {
                 return DataRow(
@@ -216,7 +222,25 @@ class HistoryScreen extends AppScreen {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: Text(
-                          l10n.historyPay,
+                          r.canPay ? l10n.historyPay : r.paymentLabel,
+                          style: TextStyle(
+                            color: r.canPay ? primary : Colors.black54,
+                            fontWeight: FontWeight.w600,
+                            decoration: r.canPay
+                                ? TextDecoration.underline
+                                : TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                      onTap: r.canPay
+                          ? () => unawaited(openGoodsPayForHistory(this, r))
+                          : null,
+                    ),
+                    DataCell(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          l10n.cancel,
                           style: TextStyle(
                             color: primary,
                             fontWeight: FontWeight.w600,
@@ -224,9 +248,7 @@ class HistoryScreen extends AppScreen {
                           ),
                         ),
                       ),
-                      onTap: () {
-                        unawaited(openGoodsPayForHistory(this, r));
-                      },
+                      onTap: () => unawaited(cancelOrderForHistory(this, r)),
                     ),
                   ],
                 );

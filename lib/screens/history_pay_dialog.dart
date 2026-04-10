@@ -9,12 +9,16 @@ class HistoryPayDialogBody extends StatefulWidget {
   final AppModel model;
   final Map<String, dynamic> orderMap;
   final String headerId;
+  final int? processStatus;
+  final int? processSubstatus;
 
   const HistoryPayDialogBody({
     super.key,
     required this.model,
     required this.orderMap,
     required this.headerId,
+    this.processStatus,
+    this.processSubstatus,
   });
 
   @override
@@ -83,6 +87,8 @@ class _HistoryPayDialogBodyState extends State<HistoryPayDialogBody> {
                 cash: cash,
                 card: card,
                 idram: idram,
+                processStatus: widget.processStatus,
+                processSubstatus: widget.processSubstatus,
               );
               Loading.dismiss();
               if (!context.mounted) return;

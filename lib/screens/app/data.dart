@@ -44,6 +44,8 @@ class Data {
 
   // current works
   final List<dynamic> tables = [];
+  /// Боксы сушки (`h_tables` с `f_hall=2`), приходят в `init-data` как `dry`.
+  final List<dynamic> dry = [];
   final List<dynamic> works = [];
 
   void loadPart2(dynamic id) {
@@ -94,7 +96,18 @@ class Data {
     return tables[index];
   }
 
+  Map<String, dynamic> dryBoxOfIndex(int index) {
+    return dry[index];
+  }
+
+  int get washBoxCount => tables.isEmpty ? 2 : tables.length;
+
+  int get dryBoxCount => dry.length;
+
   void setItemQty(Map<String, dynamic> data) {
+    if (model.isOrderBusy) {
+      return;
+    }
     int index =
         basket.indexWhere((element) => element['f_uuid'] == data['f_uuid']);
     if (index < 0) {
@@ -103,14 +116,19 @@ class Data {
     basket[index] = data;
     basketTotal();
     model.basketController.add(basket.length);
+    model.refreshBasketOrderWindowFromServer();
   }
 
   void removeBasketItem(Map<String, dynamic> data) {
+    if (model.isOrderBusy) {
+      return;
+    }
     int index =
         basket.indexWhere((element) => element['f_uuid'] == data['f_uuid']);
     basket.removeAt(index);
     basketTotal();
     model.basketController.add(basket.length);
+    model.refreshBasketOrderWindowFromServer();
   }
 
   void countWorksStartEnd() {

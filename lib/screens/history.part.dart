@@ -1,7 +1,7 @@
 part of 'history.dart';
 
-/// Последний столбец `GoodsInProgress::get` без AS: `JSON_DETAILED(ogp.f_data)`.
-const String _kOgpDataKey = 'JSON_DETAILED(ogp.f_data)';
+/// OGP в ответе `goods-in-progress/get`: `f_ogp_data` (раньше алиас `JSON_DETAILED(ogp.f_data)`).
+const String _kOgpDataKeyLegacy = 'JSON_DETAILED(ogp.f_data)';
 
 enum HistoryViewMode {
   report,
@@ -15,6 +15,12 @@ class HistoryGoodsRow {
   final String statusLabel;
   /// `f_header_id` (`oh.f_id`) для QueryOrder / ModifyOrder.
   final String orderId;
+  /// `ogp.f_header` / `oh.f_id` для отмены заказа.
+  final String headerId;
+  final int? processStatus;
+  final int? processSubstatus;
+  final bool canPay;
+  final String paymentLabel;
 
   HistoryGoodsRow({
     required this.car,
@@ -22,6 +28,11 @@ class HistoryGoodsRow {
     required this.daily,
     required this.statusLabel,
     required this.orderId,
+    required this.headerId,
+    required this.processStatus,
+    required this.processSubstatus,
+    required this.canPay,
+    required this.paymentLabel,
   });
 }
 
@@ -34,8 +45,13 @@ class HistoryModel {
   final goodsRows = <HistoryGoodsRow>[];
   final viewMode = ValueNotifier(HistoryViewMode.report);
 
-  HistoryModel() {
-    loadLastSessions();
+  HistoryModel({HistoryViewMode initialMode = HistoryViewMode.report}) {
+    viewMode.value = initialMode;
+    if (initialMode == HistoryViewMode.goodsDoneParking) {
+      loadGoodsProcess();
+    } else {
+      loadLastSessions();
+    }
   }
 
   void loadLastSessions() {
@@ -106,9 +122,7 @@ extension HistoryE on HistoryScreen {
     final l10n = AppLocalizations.of(prefs.context())!;
     final filtered = <HistoryGoodsRow>[];
     for (final row in items) {
-      if (_keepDoneParking(row)) {
-        filtered.add(_goodsDisplayRow(row, l10n));
-      }
+      filtered.add(_goodsDisplayRow(row, l10n));
     }
     _model.goodsRows
       ..clear()
@@ -150,7 +164,12 @@ extension HistoryE on HistoryScreen {
   }
 
   Map<String, dynamic>? _ogpDataStrict(Map<String, dynamic> row) {
-    return _parseJsonMapField(row[_kOgpDataKey]);
+    final primary = row['f_ogp_data'];
+    if (primary != null) {
+      final m = _parseJsonMapField(primary);
+      if (m != null && m.isNotEmpty) return m;
+    }
+    return _parseJsonMapField(row[_kOgpDataKeyLegacy]);
   }
 
   /// `JSON_DETAILED(oh.f_data) AS f_header_data`
@@ -158,22 +177,31 @@ extension HistoryE on HistoryScreen {
     return _parseJsonMapField(row['f_header_data']);
   }
 
-  double _hdrToMoney(dynamic v) {
+  // NOTE: раньше в этом экране показывались только 3/4 и 3/5 (и только «неоплачено»),
+  // но теперь показываем все статусы без фильтра.
+
+  double _money(dynamic v) {
     if (v == null) return 0;
-    final s = v.toString().replaceAll(' ', '').replaceAll(',', '').trim();
-    return double.tryParse(s) ?? 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString().replaceAll(' ', '').replaceAll(',', '').trim()) ?? 0;
   }
 
-  /// Строка «Готово / парковка» только если оплата «прочее»; при наличных или карте — не показываем.
-  /// В JSON шапки (`o_header.f_data`) ключи с подчёркиванием: `f_amount_cash`, `f_amount_other`, …
-  bool _headerPaymentIsOtherOnly(Map<String, dynamic> row) {
-    final hdr = _headerDataStrict(row);
-    if (hdr == null) return false;
-    final cash = _hdrToMoney(hdr['f_amount_cash']);
-    final card = _hdrToMoney(hdr['f_amount_card']);
-    final idram = _hdrToMoney(hdr['f_amount_idram']);
-    final other = _hdrToMoney(hdr['f_amount_other']);
-    if (cash > 0.009 || card > 0.009 || idram > 0.009) return false;
+  String _paymentLabelFromHeader(Map<String, dynamic> hdr, AppLocalizations l10n) {
+    final cash = _money(hdr['f_amount_cash'] ?? hdr['f_amountcash']);
+    final card = _money(hdr['f_amount_card'] ?? hdr['f_amountcard']);
+    final idram = _money(hdr['f_amount_idram'] ?? hdr['f_amountidram']);
+    final other = _money(hdr['f_amount_other'] ?? hdr['f_amountother']);
+    final methods = <String>[];
+    if (cash > 0.009) methods.add(l10n.cash);
+    if (card > 0.009) methods.add(l10n.card);
+    if (idram > 0.009) methods.add(l10n.idram);
+    if (other > 0.009) methods.add(l10n.other);
+    if (methods.isEmpty) return '—';
+    return methods.join(' + ');
+  }
+
+  bool _canPayFromHeader(Map<String, dynamic> hdr) {
+    final other = _money(hdr['f_amount_other'] ?? hdr['f_amountother']);
     return other > 0.009;
   }
 
@@ -193,20 +221,38 @@ extension HistoryE on HistoryScreen {
     return null;
   }
 
-  bool _keepDoneParking(Map<String, dynamic> row) {
-    if (!_headerPaymentIsOtherOnly(row)) return false;
-    final st = _processStatus(row);
-    final ss = _resolvedSubstatus(row);
-    return st == 3 && (ss == 4 || ss == 5);
-  }
-
   /// `oh.f_id AS f_header_id`
   String? _headerOrderId(Map<String, dynamic> row) {
-    final v = row['f_header_id'];
+    final v = row['f_header'] ?? row['f_header_id'];
     if (v == null) return null;
     final s = '$v'.trim();
     if (s.isEmpty || s == '0') return null;
     return s;
+  }
+
+  String? _headerIdForCancel(Map<String, dynamic> row) {
+    final direct = row['f_header'] ?? row['f_header_id'];
+    final s = direct != null ? '$direct'.trim() : '';
+    if (s.isNotEmpty && s != '0') return s;
+    final ogp = _ogpDataStrict(row);
+    final v2 = ogp?['f_header'];
+    final s2 = v2 != null ? '$v2'.trim() : '';
+    if (s2.isNotEmpty && s2 != '0') return s2;
+    return null;
+  }
+
+  String _statusLabelForRow(
+    Map<String, dynamic> row,
+    AppLocalizations l10n,
+  ) {
+    final st = _processStatus(row);
+    final ss = _resolvedSubstatus(row);
+    if (st == 1 && ss == 1) return l10n.pending;
+    if (st == 3 && ss == 4) return l10n.historyStatusDone;
+    if (st == 3 && ss == 5) return l10n.historyStatusParking;
+    if (st != null && ss != null) return '$st/$ss';
+    if (st != null) return '$st';
+    return '—';
   }
 
   HistoryGoodsRow _goodsDisplayRow(
@@ -219,16 +265,22 @@ extension HistoryE on HistoryScreen {
     var service = '${row['f_name'] ?? ''}'.trim();
     if (service.isEmpty) service = '—';
     final daily = '${row['f_daily_number'] ?? ''}'.trim();
+    final st = _processStatus(row);
     final ss = _resolvedSubstatus(row);
-    final statusLabel = ss == 5
-        ? l10n.historyStatusParking
-        : (ss == 4 ? l10n.historyStatusDone : '$ss');
+    final statusLabel = _statusLabelForRow(row, l10n);
+    final canPay = _canPayFromHeader(hdr);
+    final paymentLabel = _paymentLabelFromHeader(hdr, l10n);
     return HistoryGoodsRow(
       car: car,
       service: service,
       daily: daily.isEmpty ? '—' : daily,
       statusLabel: statusLabel,
       orderId: _headerOrderId(row) ?? '',
+      headerId: _headerIdForCancel(row) ?? '',
+      processStatus: st,
+      processSubstatus: ss,
+      canPay: canPay,
+      paymentLabel: paymentLabel,
     );
   }
 
@@ -365,6 +417,8 @@ Future<void> openGoodsPayForHistory(HistoryScreen screen, HistoryGoodsRow row) a
   }
   final o = Map<String, dynamic>.from(order);
   _normalizePayAmountsMap(o);
+  final payPs = row.processStatus;
+  final payPss = row.processSubstatus;
   m.printFiscal = true;
   final ok = await showDialog<bool>(
     context: ctx,
@@ -377,6 +431,8 @@ Future<void> openGoodsPayForHistory(HistoryScreen screen, HistoryGoodsRow row) a
             model: m,
             orderMap: o,
             headerId: row.orderId,
+            processStatus: payPs,
+            processSubstatus: payPss,
           ),
         ),
       ),
@@ -390,5 +446,36 @@ Future<void> openGoodsPayForHistory(HistoryScreen screen, HistoryGoodsRow row) a
   );
   if (ok == true) {
     screen.reloadGoodsProcess();
+  }
+}
+
+Future<void> cancelOrderForHistory(HistoryScreen screen, HistoryGoodsRow row) async {
+  final id = row.headerId.trim();
+  if (id.isEmpty) {
+    Dialogs.show(screen.model.locale().historyPayMissingOrderId);
+    return;
+  }
+  final m = screen.model;
+  final l10n = m.locale();
+  final confirm = await Dialogs.question('${l10n.cancel}?', m);
+  if (confirm != true) return;
+
+  await Loading.showUntilDisplayed(l10n.loading);
+  String? errorText;
+  try {
+    final r = await WebHttpQuery('/engine/v2/waiter/order/cancelation')
+        .request(<String, dynamic>{'id': id});
+    if (r['status'] == 1 || r['status'] == true) {
+      screen.reloadGoodsProcess();
+      return;
+    }
+    errorText = '${r['data'] ?? 'Cancelation failed'}';
+  } catch (e) {
+    errorText = e.toString();
+  } finally {
+    Loading.dismiss();
+  }
+  if (errorText.trim().isNotEmpty) {
+    await Dialogs.show(errorText);
   }
 }

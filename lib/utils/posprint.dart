@@ -1,5 +1,27 @@
-/// Накопление команд печати для отправки на сервер: только объекты `{ "cmd": … }`
-/// в списке `print_data` (без вёрстки, TextPainter, растров и т.п.).
+// Команды для `print_data` на print_server: только `{ "cmd": … }` (без вёрстки в UI).
+
+/// Смещение размера шрифта для обновлённого драйвера печати: ко всем `fontsize` в `print_data`.
+const int kPrintFontSizeDriverBump = 12;
+
+/// Команды с сервера (отчёты и т.п.): увеличить каждый `fontsize` на [kPrintFontSizeDriverBump].
+List<dynamic> applyPrintDriverFontBump(List<dynamic> printData) {
+  final out = <dynamic>[];
+  for (final e in printData) {
+    if (e is Map) {
+      final m = Map<String, dynamic>.from(e);
+      if ('${m['cmd']}' == 'fontsize') {
+        final s = m['size'];
+        final n = s is num ? s.toDouble() : double.tryParse('$s') ?? 0;
+        m['size'] = (n + kPrintFontSizeDriverBump).round();
+      }
+      out.add(m);
+    } else {
+      out.add(e);
+    }
+  }
+  return out;
+}
+
 class PosPrint {
   final List<Map<String, dynamic>> _cmds = <Map<String, dynamic>>[];
 
@@ -10,8 +32,10 @@ class PosPrint {
   List<Map<String, dynamic>> toCommandList() =>
       List<Map<String, dynamic>>.from(_cmds);
 
-  void fontsize(double size) =>
-      _cmds.add(<String, dynamic>{'cmd': 'fontsize', 'size': size.round()});
+  void fontsize(double size) => _cmds.add(<String, dynamic>{
+        'cmd': 'fontsize',
+        'size': (size + kPrintFontSizeDriverBump).round(),
+      });
 
   void br({int height = 0}) => _cmds.add(<String, dynamic>{'cmd': 'br', 'height' : height});
 

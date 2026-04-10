@@ -142,6 +142,12 @@ abstract class AppLocalizations {
   /// **'Print bill failed'**
   String get printBillFailed;
 
+  /// No description provided for @printReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Print report'**
+  String get printReport;
+
   /// No description provided for @noActiveSession.
   ///
   /// In en, this message translates to:
@@ -459,6 +465,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'History'**
   String get history;
+
+  /// No description provided for @currentOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Current orders'**
+  String get currentOrders;
 
   /// No description provided for @historyModeReport.
   ///

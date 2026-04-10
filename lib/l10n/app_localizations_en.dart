@@ -32,6 +32,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get printBillFailed => 'Print bill failed';
 
   @override
+  String get printReport => 'Print report';
+
+  @override
   String get noActiveSession => 'No active session';
 
   @override
@@ -191,6 +194,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get history => 'History';
+
+  @override
+  String get currentOrders => 'Current orders';
 
   @override
   String get historyModeReport => 'Session report';

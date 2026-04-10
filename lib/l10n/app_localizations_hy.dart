@@ -31,7 +31,10 @@ class AppLocalizationsHy extends AppLocalizations {
   String get printBillFailed => 'Հաշիվը չտպվեց';
 
   @override
-  String get noActiveSession => 'Ակտիվ հաշվեհամար չկա';
+  String get printReport => 'Տպել հաշվետվությունը';
+
+  @override
+  String get noActiveSession => 'Ակտիվ հերթափոխ չկա';
 
   @override
   String get cashboxNotConfigured =>
@@ -189,6 +192,9 @@ class AppLocalizationsHy extends AppLocalizations {
 
   @override
   String get history => 'Պատմություն';
+
+  @override
+  String get currentOrders => 'Ընթացիկ պատվերներ';
 
   @override
   String get historyModeReport => 'Փոխի հաշվետվություն';

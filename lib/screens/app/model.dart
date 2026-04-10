@@ -13,8 +13,8 @@ import 'package:carwash/screens/login.dart';
 import 'package:carwash/screens/process_end.dart';
 import 'package:carwash/screens/settings.dart';
 import 'package:carwash/screens/welcome.dart';
-import 'package:carwash/screens/widgets/states.dart';
 import 'package:carwash/utils/app_websocket.dart';
+import 'package:carwash/utils/posprint.dart';
 import 'package:carwash/utils/print_http_client.dart';
 import 'package:carwash/utils/fiscal2.dart';
 import 'package:carwash/utils/receipt_local_print.dart';
@@ -106,6 +106,13 @@ class AppModel {
   var screenMultiple = 0.43;
   var printFiscal = true;
   var login = false;
+  bool _orderBusy = false;
+  bool get isOrderBusy => _orderBusy;
+  bool _isEstimatingOrderWindow = false;
+  bool get isEstimatingOrderWindow => _isEstimatingOrderWindow;
+  String _lastCheckoutFingerprint = '';
+  DateTime? _lastCheckoutAt;
+  static const Duration _duplicateCheckoutWindow = Duration(seconds: 20);
   /// `YES` or `NO`, persisted as prefs key `usessl`.
   String settingsUseSsl = 'YES';
 
@@ -374,7 +381,7 @@ class AppModel {
       if (cashboxIdForOrder <= 0) {
         prefs.setInt('cashsession', 0);
         dialogController.add(locale().cashboxNotConfigured);
-        navCashSession();
+        navCashdeskAsRoot();
         return;
       }
       final cashErr = await syncCashboxSessionFromApi();
@@ -385,7 +392,7 @@ class AppModel {
       if ((prefs.getInt('cashsession') ?? 0) > 0) {
         navHome();
       } else {
-        navCashSession();
+        navCashdeskAsRoot();
       }
     } else {
       dialogController.add(result['data']);
@@ -405,18 +412,60 @@ class AppModel {
   }
 
   void navHome() {
+    unawaited(_navHomeAsync());
+  }
+
+  Future<void> _navHomeAsync() async {
     if (!login) {
       navLogin();
       return;
     }
-    if ((prefs.getInt('cashsession') ?? 0) <= 0) {
-      navCashSession();
+    final ctx = Prefs.navigatorKey.currentContext;
+    if (ctx == null) return;
+
+    final cashErr = await syncCashboxSessionFromApi();
+    if (cashErr != null) {
+      dialogController.add(cashErr);
+    }
+
+    if (cashboxIdForOrder <= 0) {
+      prefs.setInt('cashsession', 0);
+      dialogController.add(locale().cashboxNotConfigured);
+      if (!ctx.mounted) return;
+      navCashdeskAsRoot();
       return;
     }
+
+    if ((prefs.getInt('cashsession') ?? 0) <= 0) {
+      if (!ctx.mounted) return;
+      navCashdeskAsRoot();
+      return;
+    }
+
+    if (!ctx.mounted) return;
     Navigator.pushAndRemoveUntil(
-        Prefs.navigatorKey.currentContext!,
-        MaterialPageRoute(builder: (builder) => WelcomeScreen(this)),
-        (r) => false);
+      ctx,
+      MaterialPageRoute(builder: (builder) => WelcomeScreen(this)),
+      (r) => false,
+    );
+  }
+
+  /// Полная замена стека: экран кассы (отчёты). Без активной смены на экране
+  /// можно перейти к открытию смены ([CashSession]).
+  void navCashdeskAsRoot() {
+    unawaited(_navCashdeskAsRootAsync());
+  }
+
+  Future<void> _navCashdeskAsRootAsync() async {
+    final ctx = Prefs.navigatorKey.currentContext;
+    if (ctx == null) return;
+    await CashdeskScreen.syncSessionAndApplyFilter(this);
+    if (!ctx.mounted) return;
+    Navigator.pushAndRemoveUntil(
+      ctx,
+      MaterialPageRoute(builder: (builder) => CashdeskScreen(this)),
+      (r) => false,
+    );
   }
 
   void navCashSession() {
@@ -458,15 +507,40 @@ class AppModel {
   }
 
   void navCashdesk() {
-    Navigator.push(Prefs.navigatorKey.currentContext!,
-        MaterialPageRoute(builder: (builder) => CashdeskScreen(this)));
+    unawaited(_navCashdeskPushAsync());
+  }
+
+  Future<void> _navCashdeskPushAsync() async {
+    final ctx = Prefs.navigatorKey.currentContext;
+    if (ctx == null) return;
+    await CashdeskScreen.syncSessionAndApplyFilter(this);
+    if (!ctx.mounted) return;
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(builder: (builder) => CashdeskScreen(this)),
+    );
   }
 
   void navHistory() {
     hist.loadLibrary().then((_) {
       Navigator.push(
         Prefs.navigatorKey.currentContext!,
-        MaterialPageRoute(builder: (builder) => hist.HistoryScreen(this)),
+        MaterialPageRoute(
+            builder: (builder) => hist.HistoryScreen(this)),
+      );
+    });
+  }
+
+  void navHistoryGoodsProcess() {
+    hist.loadLibrary().then((_) {
+      Navigator.push(
+        Prefs.navigatorKey.currentContext!,
+        MaterialPageRoute(
+          builder: (builder) => hist.HistoryScreen(
+            this,
+            initialMode: hist.HistoryViewMode.goodsDoneParking,
+          ),
+        ),
       );
     });
   }
@@ -501,7 +575,7 @@ class AppModel {
       if ((prefs.getInt('cashsession') ?? 0) > 0) {
         navHome();
       } else {
-        navCashSession();
+        navCashdeskAsRoot();
       }
     });
   }
@@ -545,51 +619,106 @@ class AppModel {
   }
 
   void addToBasket(Map<String, dynamic> data) {
+    if (_orderBusy) {
+      return;
+    }
     data['f_uuid'] = const Uuid().v1().toString();
     appdata.basket.add(data);
     appdata.basketTotal();
     basketController.add(appdata.basket.length);
+    unawaited(refreshBasketOrderWindowFromServer());
   }
 
   void processOrder() {
-    ensureCashSessionBeforeOrder().then((ok) {
-      if (!ok) {
-        return;
-      }
-      if (carNumberController.text.isEmpty) {
-        Dialogs.show('Նշեք մեքենայի պետհամարանիշը');
-        return;
-      }
-      if (appdata.basket.isEmpty) {
-        Dialogs.show(locale().yourBasketIsEmpty);
-        return;
-      }
-      Loading.showUntilDisplayed(locale().loading).then((_) {
-        _runPhpOrderCheckout().then((outcome) {
+    if (_orderBusy) {
+      return;
+    }
+    final fp = _checkoutFingerprint();
+    final now = DateTime.now();
+    if (_lastCheckoutFingerprint == fp &&
+        _lastCheckoutAt != null &&
+        now.difference(_lastCheckoutAt!) < _duplicateCheckoutWindow) {
+      dialogController.add('Order is already being processed. Please wait.');
+      return;
+    }
+    _lastCheckoutFingerprint = fp;
+    _lastCheckoutAt = now;
+    _setOrderBusy(true);
+    unawaited(() async {
+      var loadingShown = false;
+      try {
+        final ok = await ensureCashSessionBeforeOrder();
+        if (!ok) {
+          return;
+        }
+        if (carNumberController.text.isEmpty) {
+          Dialogs.show('Նշեք մեքենայի պետհամարանիշը');
+          return;
+        }
+        if (appdata.basket.isEmpty) {
+          Dialogs.show(locale().yourBasketIsEmpty);
+          return;
+        }
+        await refreshBasketOrderWindowFromServer();
+        await Loading.showUntilDisplayed(locale().loading);
+        loadingShown = true;
+        final outcome = await _runPhpOrderCheckout();
+        if (outcome.error != null) {
+          dialogController.add(outcome.error!);
+          return;
+        }
+        if (outcome.usedLocalFiscal) {
+          httpOk(query_print_fiscal, outcome.fiscalBundle);
+        } else {
+          httpOk(query_create_order, outcome.fiscalBundle!);
+        }
+      } catch (e, st) {
+        // ignore: avoid_print
+        print('[/order] exception: $e\n$st');
+        dialogController.add('Order failed: $e');
+      } finally {
+        if (loadingShown) {
           Loading.dismiss();
-          if (outcome.error != null) {
-            dialogController.add(outcome.error!);
-            return;
-          }
-          if (outcome.usedLocalFiscal) {
-            httpOk(query_print_fiscal, outcome.fiscalBundle);
-          } else {
-            httpOk(query_create_order, outcome.fiscalBundle!);
-          }
-        }).catchError((e, st) {
-          Loading.dismiss();
-          // ignore: avoid_print
-          print('[/order] exception: $e\n$st');
-          dialogController.add('Order failed: $e');
-        });
-      });
-    });
+        }
+        _setOrderBusy(false);
+      }
+    }());
+  }
+
+  void _setOrderBusy(bool value) {
+    if (_orderBusy == value) return;
+    _orderBusy = value;
+    // Trigger rebuilds for basket/payment/order controls.
+    basketController.add(null);
+    fiscalController.add(null);
+  }
+
+  String _checkoutFingerprint() {
+    final car = carNumberController.text.trim();
+    final items = List<Map<String, dynamic>>.from(appdata.basket);
+    items.sort((a, b) =>
+        '${a['f_dish']}:${a['f_uuid']}'.compareTo('${b['f_dish']}:${b['f_uuid']}'));
+    final itemFp = items
+        .map((e) =>
+            '${e['f_dish']}:${e['f_qty']}:${e['f_price']}:${e['f_cooking_time']}')
+        .join('|');
+    final bd = appdata.basketData;
+    return [
+      car,
+      itemFp,
+      '${bd['f_amounttotal'] ?? 0}',
+      '${bd['f_amountcash'] ?? 0}',
+      '${bd['f_amountcard'] ?? 0}',
+      '${bd['f_amountidram'] ?? 0}',
+      '${bd['f_amountother'] ?? 0}',
+      '$printFiscal',
+    ].join('#');
   }
 
   Future<bool> ensureCashSessionBeforeOrder() async {
     if (cashboxIdForOrder <= 0) {
       Dialogs.show(locale().cashboxNotConfigured);
-      navCashSession();
+      navCashdeskAsRoot();
       return false;
     }
     final cashErr = await syncCashboxSessionFromApi();
@@ -598,7 +727,7 @@ class AppModel {
     }
     if ((prefs.getInt('cashsession') ?? 0) <= 0) {
       Dialogs.show(locale().openCashSessionBeforeOrder).then((_) {
-        navCashSession();
+        navCashdeskAsRoot();
       });
       return false;
     }
@@ -656,7 +785,45 @@ class AppModel {
     return 'Order API error';
   }
 
-  /// Загрузка заказа для оплаты (`Order::QueryOrder` → POST `…/query-order`).
+  /// Минуты из позиции корзины (`+`/`-` в [DishBasket]); для `AddDish` / `f_data`.
+  int _basketCookingMinutes(Map<String, dynamic> e) {
+    final v = e['f_cooking_time'];
+    if (v == null) return 0;
+    if (v is num) return v.round();
+    return int.tryParse(v.toString()) ?? 0;
+  }
+
+  Future<void> refreshBasketOrderWindowFromServer() async {
+    final basket = List<Map<String, dynamic>>.from(appdata.basket);
+    if (basket.isEmpty) return;
+    if (_isEstimatingOrderWindow) return;
+    _isEstimatingOrderWindow = true;
+    try {
+      var maxCook = 0;
+      for (final e in basket) {
+        final m = _basketCookingMinutes(e);
+        if (m > maxCook) maxCook = m;
+      }
+      if (maxCook <= 0) {
+        dialogController.add('Invalid basket: f_cooking_time required');
+        return;
+      }
+      final now = DateTime.now();
+      final end = now.add(Duration(minutes: maxCook));
+      final startStr = dateTimeToStr(now);
+      final endStr = dateTimeToStr(end);
+      for (final e in basket) {
+        e['f_cooking_start'] = startStr;
+        e['f_cooking_end'] = endStr;
+      }
+      basketController.add(null);
+    } finally {
+      _isEstimatingOrderWindow = false;
+    }
+  }
+
+  /// Заказ для диалога оплаты (`QueryOrder` → `…/query-order`): суммы, блюда для фиска,
+  /// `f_data` (номер и т.д.). Статус готовки / OGP сюда не входит — его не откуда взять.
   Future<Map<String, dynamic>?> fetchOrderForPayment(String headerId) async {
     final r = await _orderApiInvoke('QueryOrder', {'id': headerId});
     if (!_jsonApiStatusOk(r['status'])) return null;
@@ -747,14 +914,17 @@ class AppModel {
     ];
   }
 
-  /// Оплата заказа «прочее» реальными способами: фискалка → один вызов [ModifyOrder]
-  /// (без OpenTable / AddDish / SaveData / SetAmount и прочего чекаута).
+  /// Оплата «прочее» реальными способами: фискалка → [ModifyOrder].
+  /// В [ModifyOrder] всегда передаём [o_goods_process_status] (5/7), чтобы сервер
+  /// закрыл этап готовки и строка пропала с экрана goods-in-progress.
   Future<String?> payComplimentaryOrderWithRealPayment({
     required String headerId,
     required Map<String, dynamic> orderSnapshot,
     required double cash,
     required double card,
     required double idram,
+    int? processStatus,
+    int? processSubstatus,
   }) async {
     final total = (orderSnapshot['f_amounttotal'] as num?)?.toDouble() ??
         double.tryParse('${orderSnapshot['f_amounttotal'] ?? 0}') ??
@@ -799,6 +969,19 @@ class AppModel {
       'f_amount_cash': cash,
       'f_amount_card': card,
       'f_amount_idram': idram,
+      if (processStatus != null &&
+          processSubstatus != null &&
+          processStatus < 3)
+        'o_goods_process_status': <String, dynamic>{
+          'f_status': processStatus,
+          'f_substatus': processSubstatus,
+        }
+      else if (processStatus == 3 &&
+          (processSubstatus == 4 || processSubstatus == 5))
+        'o_goods_process_status': <String, dynamic>{
+          'f_status': 5,
+          'f_substatus': 7,
+        },
       'fiscal': <String, dynamic>{
         'in': fiscalRes.inJson,
         'out': fiscalRes.outJson ?? <String, dynamic>{},
@@ -1166,6 +1349,7 @@ class AppModel {
     var row = 100;
     for (final e in List<Map<String, dynamic>>.from(appdata.basket)) {
       final dishId = e['f_dish'];
+      final cookingTime = _basketCookingMinutes(e);
       final addRes = await step(
         'AddDish row=$row dish=$dishId',
         () {
@@ -1182,10 +1366,16 @@ class AppModel {
             'print2': e['f_print2'] ?? '',
             'dish_name': e['f_dish_name'],
             'shift_rows': false,
+            if (cookingTime > 0) 'f_cooking_time': cookingTime,
             'f_data': <String, dynamic>{
               // CountAmounts() only includes lines with f_printed — self-service POS skips kitchen print.
               'f_printed': true,
               'f_comment': e['f_comment'] ?? '',
+              if (cookingTime > 0) 'f_cooking_time': cookingTime,
+              if ('${e['f_cooking_start'] ?? ''}'.isNotEmpty)
+                'f_cooking_start': e['f_cooking_start'],
+              if ('${e['f_cooking_end'] ?? ''}'.isNotEmpty)
+                'f_cooking_end': e['f_cooking_end'],
             },
           });
         },
@@ -1424,7 +1614,7 @@ class AppModel {
         'command': 'print',
         'key': printKey,
         'printer_name': pname,
-        'print_data': List<dynamic>.from(printData),
+        'print_data': applyPrintDriverFontBump(printData),
       };
       final json = await postPrintServerJson(url: printUrl, body: body);
       receiptPrintResponse(json);
@@ -1490,10 +1680,6 @@ class AppModel {
 
   void startOrder(Map<String, dynamic> o) {
     httpQuery(query_start_order, o, '/engine/carwash/start-order.php');
-  }
-
-  void changeState(Map<String, dynamic> o) async {
-    ProcessStates.show(o, this).then((value) {});
   }
 
   void endOrder(Map<String, dynamic> o) {

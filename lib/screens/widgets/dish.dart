@@ -14,6 +14,9 @@ class Dish extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(onTap: (){
+      if (model.isOrderBusy) {
+        return;
+      }
       DishDialog.show(data, model);
     },
     child: Container(
