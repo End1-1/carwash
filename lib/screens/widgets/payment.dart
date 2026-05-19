@@ -12,12 +12,15 @@ class Payment extends StatefulWidget {
   final bool showComplimentary;
   /// Если задан — показываем номер только текстом (без клавиатуры и [carNumberController]).
   final String? carNumberDisplay;
+  /// Справа от поля суммы, та же ширина что и у суммы (например переключатель фискала).
+  final Widget? trailingAfterAmount;
 
   const Payment(this.o, this.model,
       {super.key,
       this.readyonly = false,
       this.showComplimentary = true,
-      this.carNumberDisplay});
+      this.carNumberDisplay,
+      this.trailingAfterAmount});
 
   @override
   State<StatefulWidget> createState() => _Payment();
@@ -48,41 +51,53 @@ class _Payment extends State<Payment> {
   @override
   Widget build(BuildContext context) {
     moneyController.text = '${widget.o['f_amounttotal'] ?? 0}';
+    final carBlock = widget.carNumberDisplay != null
+        ? Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              widget.carNumberDisplay!,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          )
+        : MTextFormField(
+            controller: widget.model.carNumberController,
+            readOnly: true,
+            onTap: () {
+              Kbd.getText().then((v) {
+                if (v != null) {
+                  widget.model.carNumberController.text = v;
+                }
+              });
+            },
+            hintText: 'Պետհամարանիշ',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          );
+    final amountField = MTextFormField(
+        controller: moneyController,
+        hintText: widget.model.locale().amount,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        readOnly: true);
+
     return Column(children: [
       const SizedBox(height: 10),
       Row(children: [
-        Expanded(
-            child: widget.carNumberDisplay != null
-                ? Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      widget.carNumberDisplay!,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                  )
-                : MTextFormField(
-                    controller: widget.model.carNumberController,
-                    readOnly: true,
-                    onTap: () {
-                      Kbd.getText().then((v) {
-                        if (v != null) {
-                          widget.model.carNumberController.text = v;
-                        }
-                      });
-                    },
-                    hintText: 'Պետհամարանիշ',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 18),
-                  )),
-        const SizedBox(width: 5),
-        Expanded(
-            child: MTextFormField(
-                controller: moneyController,
-                hintText: widget.model.locale().amount,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                readOnly: true))
+        if (widget.trailingAfterAmount != null) ...[
+          Expanded(flex: 2, child: carBlock),
+          const SizedBox(width: 5),
+          Expanded(flex: 1, child: amountField),
+          const SizedBox(width: 5),
+          Expanded(
+            flex: 1,
+            child: Align(
+              alignment: Alignment.center,
+              child: widget.trailingAfterAmount!,
+            ),
+          ),
+        ] else ...[
+          Expanded(child: carBlock),
+          const SizedBox(width: 5),
+          Expanded(child: amountField),
+        ],
       ]),
       const SizedBox(height: 10),
       Container(
@@ -103,6 +118,7 @@ class _Payment extends State<Payment> {
                           widget.o['f_amountother'] = widget.o['f_amounttotal'];
                           widget.model.printFiscal = false;
                           widget.model.fiscalController.add(null);
+                          widget.model.basketController.add(null);
                           setState(() {});
                         },
                         style: (widget.o['f_amountother'] ?? 0) > 0 ? s2 : s1,
@@ -126,6 +142,7 @@ class _Payment extends State<Payment> {
                         widget.o['f_amountcash'] = widget.o['f_amounttotal'];
                         widget.model.printFiscal = true;
                         widget.model.fiscalController.add(null);
+                        widget.model.basketController.add(null);
                         setState(() {});
                       },
                       style: (widget.o['f_amountcash'] ?? 0) > 0 ? s2 : s1,
@@ -148,6 +165,7 @@ class _Payment extends State<Payment> {
                         widget.o['f_amountcard'] = widget.o['f_amounttotal'];
                         widget.model.printFiscal = true;
                         widget.model.fiscalController.add(null);
+                        widget.model.basketController.add(null);
                         setState(() {});
                       },
                       style: (widget.o['f_amountcard'] ?? 0) > 0 ? s2 : s1,
@@ -170,6 +188,7 @@ class _Payment extends State<Payment> {
                         widget.o['f_amountidram'] = widget.o['f_amounttotal'];
                         widget.model.printFiscal = true;
                         widget.model.fiscalController.add(null);
+                        widget.model.basketController.add(null);
                         setState(() {});
                       },
                       style: (widget.o['f_amountidram'] ?? 0) > 0 ? s2 : s1,

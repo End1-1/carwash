@@ -58,18 +58,67 @@
   "finish": "Ավարտել",
   "options": "Կարգավորումներ",
   "process": "Գործընթաց",
-  "cashdesk": "Դրամարկղ",
+  "cashdesk": "Պատվերներ հերթափոխով",
+  "cashReports": "Դրամարկղի հաշվետվություններ",
+  "cashRemainsTitle": "Դրամարկղի մնացորդներ (30 հերթափոխ)",
+  "cashRemainsNoData": "Փակված հերթափոխերի տվյալներ չկան",
+  "cashdeskCloseQuestion": "Փակե՞լ ակտիվ դրամարկղի հերթափոխը։",
+  "cashMoveMoneyTitle": "Դրամի մուտք/ելք",
+  "cashMoveMoneyInput": "Մուտք",
+  "cashMoveMoneyOutput": "Ելք",
+  "cashMoveMoneyAmount": "Գումար",
+  "cashMoveMoneyComment": "Մեկնաբանություն",
+  "cashMoveMoneySave": "Պահպանել",
+  "cashMoveMoneyEnterAmount": "Մուտքագրեք գումարը",
+  "cashMoveMoneyFailed": "Դրամարկղի գործողությունը չհաջողվեց",
+  "cashMoveMoneyPresetWithdraw": "միջոցների ելք",
   "history": "Պատմություն",
   "currentOrders": "Ընթացիկ պատվերներ",
   "historyModeReport": "Փոխի հաշվետվություն",
   "historyModeDoneParking": "Ավարտված / կայան",
+  "historyColRow": "Տող",
   "historyColCar": "Ավտո",
   "historyColService": "Ծառայություն",
   "historyColDaily": "Համար",
   "historyColStatus": "Կարգավիճակ",
+  "historyColAmount": "Գումար",
+  "historyGoodsTotal": "Ընդամենը",
+  "historyReportColOpened": "Բացված",
+  "historyReportOrdersCount": "Պատվերներ՝ {count}",
+  "@historyReportOrdersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyRowsInTable": "Տողեր՝ {count}",
+  "@historyRowsInTable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyNoReportData": "Հաշվետվության տվյալներ չկան",
+  "historyWaitingCars": "Սպասման մեջ՝ {count}",
+  "@historyWaitingCars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "historyStatusDone": "Ավարտված",
+  "historyStatusWash": "Լվացում",
+  "historyStatusDry": "Չորացում",
   "historyStatusParking": "Կայան",
   "historyNoGoodsRows": "Չկան «ավարտված» կամ «կայան» տողեր",
+  "historyGoodsFilterAll": "Բոլորը",
+  "historyGoodsFilterUnpaid": "Չվճարված",
+  "historyGoodsFilterNoRows": "Այս զտիչին համապատասխան տողեր չկան",
+  "historyGoodsSearchCarHint": "Որոնում ըստ ավտոմոբիլի համարի",
+  "historyGoodsCarSearchNoMatch": "Այս հարցմանը համապատասխան համարներ չկան",
   "historyPay": "Վճարել",
   "historyPayTitle": "Վճարում",
   "historyPayGetOrderFailed": "Պատվերը սերվերից բեռնել չհաջողվեց",

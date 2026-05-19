@@ -189,7 +189,46 @@ class AppLocalizationsRu extends AppLocalizations {
   String get process => 'Процесс';
 
   @override
-  String get cashdesk => 'Касса';
+  String get cashdesk => 'Заказы по сменам';
+
+  @override
+  String get cashReports => 'Отчеты кассы';
+
+  @override
+  String get cashRemainsTitle => 'Остатки кассы (30 смен)';
+
+  @override
+  String get cashRemainsNoData => 'Нет данных по закрытым сменам';
+
+  @override
+  String get cashdeskCloseQuestion => 'Закрыть активную смену кассы?';
+
+  @override
+  String get cashMoveMoneyTitle => 'Ввод/вывод средств';
+
+  @override
+  String get cashMoveMoneyInput => 'Ввод';
+
+  @override
+  String get cashMoveMoneyOutput => 'Вывод';
+
+  @override
+  String get cashMoveMoneyAmount => 'Сумма';
+
+  @override
+  String get cashMoveMoneyComment => 'Комментарий';
+
+  @override
+  String get cashMoveMoneySave => 'Сохранить';
+
+  @override
+  String get cashMoveMoneyEnterAmount => 'Введите сумму';
+
+  @override
+  String get cashMoveMoneyFailed => 'Ошибка операции по кассе';
+
+  @override
+  String get cashMoveMoneyPresetWithdraw => 'изъятие средств';
 
   @override
   String get history => 'История';
@@ -204,6 +243,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get historyModeDoneParking => 'Готово / парковка';
 
   @override
+  String get historyColRow => 'Стр.';
+
+  @override
   String get historyColCar => 'Авто';
 
   @override
@@ -216,13 +258,61 @@ class AppLocalizationsRu extends AppLocalizations {
   String get historyColStatus => 'Статус';
 
   @override
+  String get historyColAmount => 'Сумма';
+
+  @override
+  String get historyGoodsTotal => 'Итого';
+
+  @override
+  String get historyReportColOpened => 'Принят';
+
+  @override
+  String historyReportOrdersCount(int count) {
+    return 'Заказов: $count';
+  }
+
+  @override
+  String historyRowsInTable(int count) {
+    return 'Строк: $count';
+  }
+
+  @override
+  String get historyNoReportData => 'Нет данных отчёта';
+
+  @override
+  String historyWaitingCars(int count) {
+    return 'В ожидании: $count';
+  }
+
+  @override
   String get historyStatusDone => 'Выполнено';
+
+  @override
+  String get historyStatusWash => 'Мойка';
+
+  @override
+  String get historyStatusDry => 'Сушка';
 
   @override
   String get historyStatusParking => 'Парковка';
 
   @override
   String get historyNoGoodsRows => 'Нет строк «выполнено» или «парковка»';
+
+  @override
+  String get historyGoodsFilterAll => 'Все';
+
+  @override
+  String get historyGoodsFilterUnpaid => 'Неоплачено';
+
+  @override
+  String get historyGoodsFilterNoRows => 'Нет строк по фильтру';
+
+  @override
+  String get historyGoodsSearchCarHint => 'Поиск по номеру авто';
+
+  @override
+  String get historyGoodsCarSearchNoMatch => 'Нет авто по этому запросу';
 
   @override
   String get historyPay => 'Оплатить';

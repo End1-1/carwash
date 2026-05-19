@@ -457,8 +457,86 @@ abstract class AppLocalizations {
   /// No description provided for @cashdesk.
   ///
   /// In en, this message translates to:
-  /// **'Cashdesk'**
+  /// **'Orders by shift'**
   String get cashdesk;
+
+  /// No description provided for @cashReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash reports'**
+  String get cashReports;
+
+  /// No description provided for @cashRemainsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash remains (last 30 shifts)'**
+  String get cashRemainsTitle;
+
+  /// No description provided for @cashRemainsNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data for closed shifts'**
+  String get cashRemainsNoData;
+
+  /// No description provided for @cashdeskCloseQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Close active cash session?'**
+  String get cashdeskCloseQuestion;
+
+  /// No description provided for @cashMoveMoneyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash in/out'**
+  String get cashMoveMoneyTitle;
+
+  /// No description provided for @cashMoveMoneyInput.
+  ///
+  /// In en, this message translates to:
+  /// **'In'**
+  String get cashMoveMoneyInput;
+
+  /// No description provided for @cashMoveMoneyOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Out'**
+  String get cashMoveMoneyOutput;
+
+  /// No description provided for @cashMoveMoneyAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get cashMoveMoneyAmount;
+
+  /// No description provided for @cashMoveMoneyComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get cashMoveMoneyComment;
+
+  /// No description provided for @cashMoveMoneySave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get cashMoveMoneySave;
+
+  /// No description provided for @cashMoveMoneyEnterAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter amount'**
+  String get cashMoveMoneyEnterAmount;
+
+  /// No description provided for @cashMoveMoneyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash operation failed'**
+  String get cashMoveMoneyFailed;
+
+  /// No description provided for @cashMoveMoneyPresetWithdraw.
+  ///
+  /// In en, this message translates to:
+  /// **'cash withdrawal'**
+  String get cashMoveMoneyPresetWithdraw;
 
   /// No description provided for @history.
   ///
@@ -484,6 +562,12 @@ abstract class AppLocalizations {
   /// **'Done / parking'**
   String get historyModeDoneParking;
 
+  /// No description provided for @historyColRow.
+  ///
+  /// In en, this message translates to:
+  /// **'#'**
+  String get historyColRow;
+
   /// No description provided for @historyColCar.
   ///
   /// In en, this message translates to:
@@ -508,11 +592,65 @@ abstract class AppLocalizations {
   /// **'Status'**
   String get historyColStatus;
 
+  /// No description provided for @historyColAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get historyColAmount;
+
+  /// No description provided for @historyGoodsTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get historyGoodsTotal;
+
+  /// No description provided for @historyReportColOpened.
+  ///
+  /// In en, this message translates to:
+  /// **'Opened'**
+  String get historyReportColOpened;
+
+  /// No description provided for @historyReportOrdersCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders: {count}'**
+  String historyReportOrdersCount(int count);
+
+  /// No description provided for @historyRowsInTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows: {count}'**
+  String historyRowsInTable(int count);
+
+  /// No description provided for @historyNoReportData.
+  ///
+  /// In en, this message translates to:
+  /// **'No report data'**
+  String get historyNoReportData;
+
+  /// No description provided for @historyWaitingCars.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting: {count}'**
+  String historyWaitingCars(int count);
+
   /// No description provided for @historyStatusDone.
   ///
   /// In en, this message translates to:
   /// **'Done'**
   String get historyStatusDone;
+
+  /// No description provided for @historyStatusWash.
+  ///
+  /// In en, this message translates to:
+  /// **'Wash'**
+  String get historyStatusWash;
+
+  /// No description provided for @historyStatusDry.
+  ///
+  /// In en, this message translates to:
+  /// **'Drying'**
+  String get historyStatusDry;
 
   /// No description provided for @historyStatusParking.
   ///
@@ -525,6 +663,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No done or parking rows'**
   String get historyNoGoodsRows;
+
+  /// No description provided for @historyGoodsFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get historyGoodsFilterAll;
+
+  /// No description provided for @historyGoodsFilterUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpaid'**
+  String get historyGoodsFilterUnpaid;
+
+  /// No description provided for @historyGoodsFilterNoRows.
+  ///
+  /// In en, this message translates to:
+  /// **'No rows match this filter'**
+  String get historyGoodsFilterNoRows;
+
+  /// No description provided for @historyGoodsSearchCarHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by car number'**
+  String get historyGoodsSearchCarHint;
+
+  /// No description provided for @historyGoodsCarSearchNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No cars match this search'**
+  String get historyGoodsCarSearchNoMatch;
 
   /// No description provided for @historyPay.
   ///

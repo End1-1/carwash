@@ -109,7 +109,11 @@
       time_parking_prefix: "до паркинга: ",
       time_elapsed_dh: "{d}д {h}ч",
       time_elapsed_hm: "{h}ч {m}мин",
-      time_elapsed_m: "{m} мин"
+      time_elapsed_m: "{m} мин",
+      process_data_invalid_badge: "⚠",
+      process_data_invalid:
+        "В строке процесса недопустимая пара статус/подстатус (рассинхрон с сервером). Можно принудительно выставить «очередь 1/1» или дальше менять стадии — проверьте данные в админке.",
+      btn_fix_to_1_1: "В очередь 1/1 (исправить)"
     },
     en: {
       app_title: "Carwash Status",
@@ -185,7 +189,11 @@
       time_parking_prefix: "To parking: ",
       time_elapsed_dh: "{d}d {h}h",
       time_elapsed_hm: "{h}h {m}m",
-      time_elapsed_m: "{m} min"
+      time_elapsed_m: "{m} min",
+      process_data_invalid_badge: "⚠",
+      process_data_invalid:
+        "Invalid status/substatus pair (server data out of sync). You can force «queue 1/1» or keep changing stages — check data in admin.",
+      btn_fix_to_1_1: "Queue 1/1 (fix)"
     },
     hy: {
       app_title: "Carwash Status",
@@ -261,7 +269,11 @@
       time_parking_prefix: "Մինչև կայանը․ ",
       time_elapsed_dh: "{d}օ {h}ժ",
       time_elapsed_hm: "{h}ժ {m}ր",
-      time_elapsed_m: "{m} ր"
+      time_elapsed_m: "{m} ր",
+      process_data_invalid_badge: "⚠",
+      process_data_invalid:
+        "Կարգավիճակի/ենթակարգավիճակի թույլատրելի զույգ չէ (տվյալների ռասսինխ)։ Կարելի է «հերթ 1/1» կամ շարունակել փուլերը։ Ստուգեք ադմինում։",
+      btn_fix_to_1_1: "Հերթ 1/1 (ուղղում)"
     }
   };
 

@@ -5,6 +5,8 @@ import 'dart:io' show Platform;
 import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/question_bloc.dart';
 import 'package:carwash/screens/cashdesk.dart';
+import 'package:carwash/screens/cash_remains.dart';
+import 'package:carwash/screens/cash_reports.dart';
 import 'package:carwash/screens/cashsession.dart';
 import 'package:carwash/screens/dishes.dart';
 import 'package:carwash/screens/help/screen_help.dart';
@@ -62,7 +64,7 @@ class AppModel {
   /// `Cashbox::CheckStatus` / `Open`.
   static const String cashboxCheckStatusRoute =
       '/engine/v2/waiter/cashbox/check-status';
-  static const String cashboxOpenRoute = '/engine/v2/waiter/cashbox/open';
+  static const String cashboxOpenRoute = '/engine/v2/carwash/cashbox/open';
 
   static const String orderFiscalLogRoute =
       '/engine/v2/waiter/order/fiscal-log';
@@ -521,28 +523,65 @@ class AppModel {
     );
   }
 
+  void navCashReports() {
+    unawaited(_navCashReportsPushAsync());
+  }
+
+  void navCashRemains() {
+    final ctx = Prefs.navigatorKey.currentContext;
+    if (ctx == null) return;
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(builder: (builder) => CashRemainsScreen(this)),
+    );
+  }
+
+  Future<void> _navCashReportsPushAsync() async {
+    final ctx = Prefs.navigatorKey.currentContext;
+    if (ctx == null) return;
+    await CashReportsScreen.syncSessionAndApplyFilter(this);
+    if (!ctx.mounted) return;
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(builder: (builder) => CashReportsScreen(this)),
+    );
+  }
+
   void navHistory() {
-    hist.loadLibrary().then((_) {
-      Navigator.push(
-        Prefs.navigatorKey.currentContext!,
-        MaterialPageRoute(
-            builder: (builder) => hist.HistoryScreen(this)),
-      );
-    });
+    unawaited(_navHistoryPushAsync());
+  }
+
+  Future<void> _navHistoryPushAsync() async {
+    await hist.loadLibrary();
+    final ctx = Prefs.navigatorKey.currentContext;
+    if (ctx == null) return;
+    await syncCashboxSessionFromApi();
+    if (!ctx.mounted) return;
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(builder: (builder) => hist.HistoryScreen(this)),
+    );
   }
 
   void navHistoryGoodsProcess() {
-    hist.loadLibrary().then((_) {
-      Navigator.push(
-        Prefs.navigatorKey.currentContext!,
-        MaterialPageRoute(
-          builder: (builder) => hist.HistoryScreen(
-            this,
-            initialMode: hist.HistoryViewMode.goodsDoneParking,
-          ),
+    unawaited(_navHistoryGoodsPushAsync());
+  }
+
+  Future<void> _navHistoryGoodsPushAsync() async {
+    await hist.loadLibrary();
+    final ctx = Prefs.navigatorKey.currentContext;
+    if (ctx == null) return;
+    await syncCashboxSessionFromApi();
+    if (!ctx.mounted) return;
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(
+        builder: (builder) => hist.HistoryScreen(
+          this,
+          initialMode: hist.HistoryViewMode.goodsDoneParking,
         ),
-      );
-    });
+      ),
+    );
   }
 
   void navStatus() {
@@ -879,7 +918,7 @@ class AppModel {
           'f_price': price,
           'f_qty': qty,
           'f_department': m['f_department'] ?? 1,
-          'f_adg_code': m['f_adg_code'] ?? m['f_adgt'] ?? m['f_adg'] ?? '0000',
+          'f_adgt': m['f_adgt'],
           'f_id': m['f_id'] ?? m['f_dish'] ?? 0,
           'f_data': m['f_data'],
         });
@@ -908,15 +947,18 @@ class AppModel {
         'f_price': total,
         'f_qty': 1.0,
         'f_department': 1,
-        'f_adg_code': '0000',
+        'f_adgt': '',
         'f_id': 0,
       }
     ];
   }
 
   /// Оплата «прочее» реальными способами: фискалка → [ModifyOrder].
-  /// В [ModifyOrder] всегда передаём [o_goods_process_status] (5/7), чтобы сервер
-  /// закрыл этап готовки и строка пропала с экрана goods-in-progress.
+  /// Для завершённых заказов (3/4 или 3/5) в [ModifyOrder] передаём [o_goods_process_status]
+  /// 5/7, чтобы сервер закрыл этап и строка пропала с goods-in-progress.
+  /// Для этапов до 3 — ту же пару статус/подстатус (1/1, 2/2, 2/3), кроме рассинхрона БД:
+  /// подстатусы 4 и 5 допустимы только при `f_status == 3`; иначе получалась недопустимая
+  /// пара вроде 2/4 и заказ оставался в «ожидает оплату».
   Future<String?> payComplimentaryOrderWithRealPayment({
     required String headerId,
     required Map<String, dynamic> orderSnapshot,
@@ -926,6 +968,11 @@ class AppModel {
     int? processStatus,
     int? processSubstatus,
   }) async {
+    var ps = processStatus;
+    var pss = processSubstatus;
+    if (ps != null && pss != null && (pss == 4 || pss == 5) && ps < 3) {
+      ps = 3;
+    }
     final total = (orderSnapshot['f_amounttotal'] as num?)?.toDouble() ??
         double.tryParse('${orderSnapshot['f_amounttotal'] ?? 0}') ??
         0.0;
@@ -946,55 +993,72 @@ class AppModel {
       'f_amountidram': idram,
       'f_amountother': 0,
     };
-    FiscalPrintResult fiscalRes;
-    try {
+    Map<String, dynamic> fiscalForModify;
+    FiscalPrintResult? fiscalRes;
+    if (printFiscal) {
       fiscalRes = await _printFiscalReceiptViaFiscalServer(
         basket: basket,
         bd: bd,
+        orderHeaderId: headerId,
       );
-    } catch (e) {
-      fiscalRes = await _printFiscalReceiptForCurrentBasket(basket, bd);
-    }
-    if (!fiscalRes.isOk) {
-      unawaited(_postOrderFiscalLog(headerId, fiscalRes));
-      final msg = fiscalRes.error.isNotEmpty
-          ? fiscalRes.error
-          : '${locale().printFiscalFailed} (${fiscalRes.result})';
-      return msg;
-    }
-    final mod = await _orderApiInvoke('ModifyOrder', {
-      'id': headerId,
-      'cashbox_id': cashboxIdForOrder,
-      'f_amount_other': 0.0,
-      'f_amount_cash': cash,
-      'f_amount_card': card,
-      'f_amount_idram': idram,
-      if (processStatus != null &&
-          processSubstatus != null &&
-          processStatus < 3)
-        'o_goods_process_status': <String, dynamic>{
-          'f_status': processStatus,
-          'f_substatus': processSubstatus,
-        }
-      else if (processStatus == 3 &&
-          (processSubstatus == 4 || processSubstatus == 5))
-        'o_goods_process_status': <String, dynamic>{
-          'f_status': 5,
-          'f_substatus': 7,
-        },
-      'fiscal': <String, dynamic>{
+      if (!fiscalRes.isOk) {
+        unawaited(_postOrderFiscalLog(headerId, fiscalRes));
+        final msg = fiscalRes.error.isNotEmpty
+            ? fiscalRes.error
+            : '${locale().printFiscalFailed} (${fiscalRes.result})';
+        return msg;
+      }
+      fiscalForModify = <String, dynamic>{
         'in': fiscalRes.inJson,
         'out': fiscalRes.outJson ?? <String, dynamic>{},
         'err': fiscalRes.error,
         'error': fiscalRes.error,
         'result': fiscalRes.result,
-      },
+      };
+    } else {
+      fiscalForModify = <String, dynamic>{
+        'in': <String, dynamic>{},
+        'out': <String, dynamic>{},
+        'error': '',
+        'err': '',
+        'result': 0,
+      };
+    }
+    final baseComment = '${orderSnapshot['f_comment'] ?? ''}'.trim();
+    final carNumber = carPlateFromOrderMap(orderSnapshot).trim();
+    var paymentComment = baseComment;
+    if (carNumber.isNotEmpty && !baseComment.contains(carNumber)) {
+      paymentComment =
+          baseComment.isEmpty ? carNumber : '$baseComment | $carNumber';
+    }
+    final mod = await _orderApiInvoke('ModifyOrder', {
+      'id': headerId,
+      'cashbox_id': cashboxIdForOrder,
+      'it_payment': true,
+      if (paymentComment.isNotEmpty) 'f_comment': paymentComment,
+      'f_amount_other': 0.0,
+      'f_amount_cash': cash,
+      'f_amount_card': card,
+      'f_amount_idram': idram,
+      if (ps != null && pss != null && ps < 3)
+        'o_goods_process_status': <String, dynamic>{
+          'f_status': ps,
+          'f_substatus': pss,
+        }
+      else if (ps == 3 && (pss == 4 || pss == 5))
+        'o_goods_process_status': <String, dynamic>{
+          'f_status': 5,
+          'f_substatus': 7,
+        },
+      'fiscal': fiscalForModify,
     });
     final modErr = _orderApiErrorMessage(mod);
     if (modErr != null) {
       return modErr;
     }
-    unawaited(_postOrderFiscalLog(headerId, fiscalRes));
+    if (printFiscal && fiscalRes != null) {
+      unawaited(_postOrderFiscalLog(headerId, fiscalRes));
+    }
     return null;
   }
 
@@ -1061,71 +1125,15 @@ class AppModel {
     } catch (_) {/* ignore */}
   }
 
-  Future<FiscalPrintResult> _printFiscalReceiptForCurrentBasket(
-    List<Map<String, dynamic>> basket,
-    Map<String, dynamic> bd,
-    {void Function(String message)? onStep = null}
-  ) async {
-    final fc = _fiscalTcpParams();
-    if (fc == null) {
-      return FiscalPrintResult(
-        inJson: <String, dynamic>{},
-        error: locale().fiscalNotConfigured,
-        result: -10,
-      );
-    }
-
-    final pt = PrintTaxN(
-      ip: fc.host,
-      port: fc.port,
-      password: fc.password,
-      taxCashier: fc.op,
-      taxPin: fc.pin,
-      useExtPos: fc.useExtPos,
-    );
-
+  String? _missingAdgtDishName(List<Map<String, dynamic>> basket) {
     for (final e in basket) {
-      final dep =
-          int.tryParse('${e['f_department'] ?? e['f_fiscal_dep'] ?? 1}') ??
-              1;
-      final adg = '${e['f_adg_code'] ?? e['f_adgt'] ?? e['f_adg'] ?? '0000'}';
-      final pid = int.tryParse('${e['f_id']}') ?? 0;
-      final name = e['f_dish_name'];
-      final price = (e['f_price'] as num?)?.toDouble() ?? 0;
-      final qty = (e['f_qty'] as num?)?.toDouble() ?? 1;
-      var discountPct = 0.0;
-      final fd = e['f_data'];
-      Map<String, dynamic>? fdm;
-      if (fd is String && fd.isNotEmpty) {
-        try {
-          fdm = jsonDecode(fd) as Map<String, dynamic>?;
-        } catch (_) {}
-      } else if (fd is Map) {
-        fdm = Map<String, dynamic>.from(fd);
+      final adgt = '${e['f_adgt'] ?? ''}'.trim();
+      if (adgt.isEmpty) {
+        final name = '${e['f_dish_name'] ?? e['f_name'] ?? e['name'] ?? ''}'.trim();
+        return name.isEmpty ? '—' : name;
       }
-      final df = fdm?['f_discount_factor'];
-      if (df is num) discountPct = df.toDouble() * 100;
-
-      pt.addGoods(
-        dep: dep,
-        adgCode: adg,
-        productCode: pid,
-        name: name,
-        price: price,
-        qty: qty,
-        discount: discountPct,
-      );
     }
-
-    final cash = (bd['f_amountcash'] as num?)?.toDouble() ?? 0;
-    final card = (bd['f_amountcard'] as num?)?.toDouble() ?? 0;
-    final idram = (bd['f_amountidram'] as num?)?.toDouble() ?? 0;
-    return pt.printReceiptWithDetails(
-      cash: cash,
-      card: card + idram,
-      prepaid: 0,
-      onStep: onStep,
-    );
+    return null;
   }
 
   Uri? _fiscalServerUriFromPrintServerUrl(String printServerUrl) {
@@ -1151,8 +1159,28 @@ class AppModel {
   Future<FiscalPrintResult> _printFiscalReceiptViaFiscalServer({
     required List<Map<String, dynamic>> basket,
     required Map<String, dynamic> bd,
+    /// `o_header.f_id` — в JSON на сервер печати как `order` (см. FiscalLogSession в Qt).
+    required String orderHeaderId,
     void Function(String message)? onStep,
   }) async {
+    final oid = orderHeaderId.trim();
+    if (oid.isEmpty) {
+      return FiscalPrintResult(
+        inJson: <String, dynamic>{},
+        error: 'Missing o_header.f_id for fiscal print',
+        result: -14,
+      );
+    }
+
+    final missingAdgtName = _missingAdgtDishName(basket);
+    if (missingAdgtName != null) {
+      return FiscalPrintResult(
+        inJson: <String, dynamic>{},
+        error: 'Missing f_adgt for dish: $missingAdgtName',
+        result: -13,
+      );
+    }
+
     final fc = _fiscalTcpParams();
     if (fc == null) {
       return FiscalPrintResult(
@@ -1190,7 +1218,7 @@ class AppModel {
       final dep =
           int.tryParse('${e['f_department'] ?? e['f_fiscal_dep'] ?? 1}') ?? 1;
       depDefault = depDefault == 1 ? dep : depDefault;
-      final adgt = '${e['f_adg_code'] ?? e['f_adgt'] ?? e['f_adg'] ?? '0000'}';
+      final adgt = '${e['f_adgt'] ?? ''}'.trim();
       final pid = int.tryParse('${e['f_id']}') ?? 0;
       final name = (e['f_dish_name'] ?? '').toString();
       final price = (e['f_price'] as num?)?.toDouble() ?? 0.0;
@@ -1220,12 +1248,14 @@ class AppModel {
       });
     }
 
+    final cash = (bd['f_amountcash'] as num?)?.toDouble() ?? 0.0;
     final card = (bd['f_amountcard'] as num?)?.toDouble() ?? 0.0;
     final idram = (bd['f_amountidram'] as num?)?.toDouble() ?? 0.0;
     final paidCard = card + idram;
     final paidPrepaid = 0.0;
 
     final payload = <String, dynamic>{
+      'order': oid,
       'fiscal': <String, dynamic>{
         'ip': fc.host,
         'port': fc.port,
@@ -1238,6 +1268,7 @@ class AppModel {
       'dishes': dishes,
       'paid_card': paidCard,
       'paid_prepaid': paidPrepaid,
+      'paid_cash': cash
     };
 
     onStep?.call('Fiscal server: send data…');
@@ -1447,25 +1478,14 @@ class AppModel {
     };
 
     if (printFiscal) {
-      FiscalPrintResult fiscalRes;
-      try {
-        fiscalRes = await step('Print fiscal receipt (server)', () async {
-          return await _printFiscalReceiptViaFiscalServer(
-            basket: List<Map<String, dynamic>>.from(appdata.basket),
-            bd: bd,
-            onStep: setOrderLoading,
-          );
-        });
-      } catch (e) {
-        // If server printing crashes, fallback to TCP printing.
-        fiscalRes = await step('Print fiscal receipt (TCP fallback)', () {
-          return _printFiscalReceiptForCurrentBasket(
-            List<Map<String, dynamic>>.from(appdata.basket),
-            bd,
-            onStep: setOrderLoading,
-          );
-        });
-      }
+      final fiscalRes = await step('Print fiscal receipt (server)', () async {
+        return await _printFiscalReceiptViaFiscalServer(
+          basket: List<Map<String, dynamic>>.from(appdata.basket),
+          bd: bd,
+          orderHeaderId: headerId,
+          onStep: setOrderLoading,
+        );
+      });
       if (!fiscalRes.isOk) {
         // Don't block order flow on log sending (can hang on network).
         setOrderLoading('Post fiscal log (error) (non-blocking)');
@@ -1614,7 +1634,11 @@ class AppModel {
         'command': 'print',
         'key': printKey,
         'printer_name': pname,
-        'print_data': applyPrintDriverFontBump(printData),
+        // Для отчётов в приложении оставляем прежний вид, но в печати
+        // уменьшаем команды fontsize на 2 перед драйверным bump.
+        'print_data': applyPrintDriverFontBump(
+          _applyRawPrintFontDelta(printData, delta: -2),
+        ),
       };
       final json = await postPrintServerJson(url: printUrl, body: body);
       receiptPrintResponse(json);
@@ -1624,6 +1648,29 @@ class AppModel {
       }
       dialogController.add('${locale().printBillFailed}: $e');
     }
+  }
+
+  List<dynamic> _applyRawPrintFontDelta(
+    List<dynamic> printData, {
+    required int delta,
+  }) {
+    if (delta == 0) return List<dynamic>.from(printData);
+    final out = <dynamic>[];
+    for (final e in printData) {
+      if (e is Map) {
+        final m = Map<String, dynamic>.from(e);
+        if ('${m['cmd']}' == 'fontsize') {
+          final s = m['size'];
+          final n = s is num ? s.toDouble() : double.tryParse('$s') ?? 0;
+          final v = (n + delta).round();
+          m['size'] = v < 1 ? 1 : v;
+        }
+        out.add(m);
+      } else {
+        out.add(e);
+      }
+    }
+    return out;
   }
 
   void receiptPrintResponse(Map<String, dynamic> json) {
@@ -1858,6 +1905,13 @@ class AppModel {
       appdata.basketData['f_amountcash'] = appdata.basketData['f_amounttotal'];
       basketController.add(null);
     }
+  }
+
+  /// Переключение «печатать фискальный чек» без сброса способа оплаты в корзине
+  /// (для оплаты из истории и др., где не нужен побочный эффект [changeFiscalMode]).
+  void togglePrintFiscalOnly() {
+    printFiscal = !printFiscal;
+    fiscalController.add(null);
   }
 }
 

@@ -1,6 +1,7 @@
 import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/screen.dart';
 import 'package:carwash/utils/prefs.dart';
+import 'package:carwash/widgets/app_nav_popup_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -19,7 +20,9 @@ class CashSession extends AppScreen {
       backgroundColor: Colors.green,
       toolbarHeight: kToolbarHeight,
       title: Text(prefs.appTitle()),
-      actions: const [],
+      actions: [
+        AppNavPopupMenuButton(model: model),
+      ],
     );
   }
 

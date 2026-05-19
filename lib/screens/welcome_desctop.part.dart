@@ -51,72 +51,24 @@ extension WelcomeDesktop on WelcomeScreen {
             ),
             child: Text(prefs.string('table'),
                 style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-        TextButton.icon(
-          onPressed: () {
-            BlocProvider.of<AppAnimateBloc>(prefs.context())
-                .add(AppAnimateEvent());
-            model.navHistoryGoodsProcess();
+        Builder(
+          builder: (context) {
+            return TextButton.icon(
+              onPressed: () {
+                BlocProvider.of<AppAnimateBloc>(prefs.context())
+                    .add(AppAnimateEvent());
+                model.navHistoryGoodsProcess();
+              },
+              icon: const Icon(Icons.history_outlined, color: Colors.white),
+              label: Text(
+                model.locale().currentOrders,
+                style: const TextStyle(color: Colors.white),
+              ),
+            );
           },
-          icon: const Icon(Icons.history_outlined, color: Colors.white),
-          label: Text(
-            model.locale().currentOrders,
-            style: const TextStyle(color: Colors.white),
-          ),
         ),
 
-        PopupMenuButton(
-          icon: const Icon(Icons.settings_outlined),
-          itemBuilder: (BuildContext context) {
-            return [
-              PopupMenuItem(
-                  child: ListTile(
-                    leading: const Icon(Icons.settings_outlined),
-                    title: Text(model.locale().options),
-                    onTap: model.navSettings,
-                  )),
-              PopupMenuItem(
-                  child: ListTile(
-                    leading: const Icon(Icons.monitor),
-                    title: Text(model.locale().cashdesk),
-                    onTap: () {
-                      BlocProvider.of<AppAnimateBloc>(prefs.context())
-                          .add(AppAnimateEvent());
-                      model.navCashdesk();
-                    },
-                  )),
-              PopupMenuItem(
-                  child: ListTile(
-                    leading: const Icon(Icons.history_outlined),
-                    title: Text(model.locale().history),
-                    onTap: () {
-                      BlocProvider.of<AppAnimateBloc>(prefs.context())
-                          .add(AppAnimateEvent());
-                      model.navHistory();
-                    },
-                  )),
-              if ((prefs.getInt('user_group') ?? 0) == 1)
-                PopupMenuItem(
-                    child: ListTile(
-                      leading: const Icon(Icons.request_page_outlined),
-                      title: Text(model.locale().carwashStatus),
-                      onTap: () {
-                        BlocProvider.of<AppAnimateBloc>(prefs.context())
-                            .add(AppAnimateEvent());
-                        model.navStatus();
-                      },
-                    )),
-              PopupMenuItem(
-                  child: ListTile(
-                    leading: const Icon(Icons.logout),
-                    title: Text(model.locale().logout),
-                    onTap: () {
-                      prefs.setString('passhash', '');
-                      model.navLogin();
-                    },
-                  )),
-            ];
-          },
-        )
+        AppNavPopupMenuButton(model: model),
       ],
     );
   }

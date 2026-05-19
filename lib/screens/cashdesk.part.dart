@@ -1,6 +1,7 @@
 part of 'cashdesk.dart';
 
 class CashdeskModel {
+  static const String _line = '────────────────────────';
   String reportName = '';
   int reportId = 1;
   int sessionId = 0;
@@ -11,6 +12,16 @@ class CashdeskModel {
   List<dynamic>? _lastPrintPayload;
 
   CashdeskModel();
+
+  /// `last-30-sessions`: берём смену с максимальным `value` (f_id) — «последняя» в хронологии, без привязки к порядку в массиве.
+  int _newestSessionIdFromLast30() {
+    var best = 0;
+    for (final e in sessions) {
+      final v = int.tryParse('${e['value']}') ?? 0;
+      if (v > best) best = v;
+    }
+    return best;
+  }
 
   void onEnter() {
     // Prevent showing stale report lines from previous screen visit.
@@ -54,10 +65,10 @@ class CashdeskModel {
       return;
     }
     BlocProvider.of<QuestionBloc>(prefs.context()).add(
-      QuestionEventRaise('Փակել ակտիվ դրամարկղի հերթափոխը՞', () {
+      QuestionEventRaise(model.locale().cashdeskCloseQuestion, () {
         BlocProvider.of<AppBloc>(prefs.context()).add(
           AppEventQueryCloseDay(
-            '/engine/v2/waiter/cashbox/close',
+            '/engine/v2/carwash/cashbox/close',
             <String, dynamic>{'cashbox_id': cid},
           ),
         );
@@ -68,6 +79,20 @@ class CashdeskModel {
   void handleReportsState(model, dynamic raw) {
     if (raw is! Map) return;
     final data = Map<String, dynamic>.from(raw as Map);
+
+    // 1) last-30-sessions: сначала, чтобы `sessions` и sessionId были до обработки get-list в том же JSON.
+    final values = data['values'];
+    if (values is List) {
+      sessions
+        ..clear()
+        ..addAll(values.map((e) => Map<String, dynamic>.from(e as Map)));
+      if (sessionId <= 0 && sessions.isNotEmpty) {
+        sessionId = _newestSessionIdFromLast30();
+      }
+      _updateSessionTitle();
+    }
+
+    // 2) get-list: метаданные отчёта; затем get-report, если сессия уже выбрана.
     final list = data['list'];
     if (list is List && list.isNotEmpty && reportName.isEmpty) {
       final first = Map<String, dynamic>.from(list.first as Map);
@@ -77,23 +102,20 @@ class CashdeskModel {
       if (dv is Map && sessionId <= 0) {
         sessionId = int.tryParse('${dv['session_id']}') ?? 0;
       }
-      // last-30-sessions уже выставил сессии; дальше только отчёт.
-      loadReport();
-      return;
-    }
-    final values = data['values'];
-    if (values is List) {
-      sessions
-        ..clear()
-        ..addAll(values.map((e) => Map<String, dynamic>.from(e as Map)));
       if (sessionId <= 0 && sessions.isNotEmpty) {
-        sessionId = int.tryParse('${sessions.first['value']}') ?? 0;
+        sessionId = _newestSessionIdFromLast30();
+        _updateSessionTitle();
       }
-      _updateSessionTitle();
-      // После списка смен — список отчётов (get-list), затем в ветке list — get-report.
-      loadReportList();
-      return;
+      loadReport();
+    } else if (values is List) {
+      // Список отчётов запрашиваем, только если в этом же ответе ещё нет get-list.
+      final hasList = data['list'] is List && (data['list'] as List).isNotEmpty;
+      if (!hasList) {
+        loadReportList();
+      }
     }
+
+    // 3) get-report: тело печати
     final p = data['printing'];
     if (p is List) {
       _lastPrintPayload = List<dynamic>.from(p);
@@ -119,6 +141,9 @@ class CashdeskModel {
 
   String _renderPrintCmd(Map<String, dynamic> cmd) {
     final c = '${cmd['cmd'] ?? ''}';
+    if (c == 'line' || c == 'line2') {
+      return _line;
+    }
     if (c == 'lrtext') {
       return '${cmd['left'] ?? ''} ${cmd['right'] ?? ''}'.trim();
     }

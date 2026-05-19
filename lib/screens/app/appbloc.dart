@@ -13,6 +13,11 @@ class AppStateFinish extends AppState {
   final dynamic data;
 
   AppStateFinish(this.data);
+
+  /// Иначе [props] = [] у [AppState] — все [AppStateShifts] с разным [data] равны по Equatable,
+  /// [Bloc] отбрасывает emit (после last-30 не приходят get-list / get-report в UI).
+  @override
+  List<Object?> get props => [data];
 }
 
 class AppStateCash extends AppStateFinish {
@@ -27,6 +32,9 @@ class AppStateError extends AppState {
   final String error;
 
   AppStateError(this.error);
+
+  @override
+  List<Object?> get props => [error];
 }
 
 class AppStateClosed extends AppState {}

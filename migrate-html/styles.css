@@ -252,6 +252,44 @@ h2 {
   outline-offset: 2px;
 }
 
+/* Рассинхрон f_status / f_ogp_data.f_substatus: заметная подсветка карточки */
+.layout > .card .row.row-process-invalid {
+  background: #0a0a0a !important;
+  color: #fff !important;
+  border-bottom-color: #333 !important;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+.layout > .card .row.row-process-invalid .number,
+.layout > .card .row.row-process-invalid .service,
+.layout > .card .row.row-process-invalid .table,
+.layout > .card .row.row-process-invalid .time {
+  color: #fff !important;
+}
+
+.layout > .card .row.row-process-invalid .number--paid-square {
+  border-color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.layout > .card .row.row-process-invalid .status-icon {
+  filter: brightness(0) invert(1);
+}
+
+#overlay.overlay--process-invalid .dialog {
+  border: 2px solid #b00020;
+  box-shadow: 0 8px 32px rgba(176, 0, 32, 0.35);
+}
+
+.dialog-invalid-hint {
+  margin: 0 0 4px;
+  font-size: 15px;
+  line-height: 1.35;
+  color: #8b0000;
+}
+
 /*
  * Долго в «выполнено» (3/4): пульс фона + внутренняя рамка.
  * Без filter/внешнего glow — в Chrome + overflow:hidden на .list надёжнее.

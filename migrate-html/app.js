@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var APP_VERSION = "tv-app.js 2026-04-10 remove-overdue-dot";
+  var APP_VERSION = "tv-app.js 2026-04-11 no-dry-slot-limit";
   if (typeof console !== "undefined") {
     console.log("[tv] version:", APP_VERSION);
     console.log("[tv] console check: app.js loaded");
@@ -34,7 +34,6 @@
   var queuedOrder = [];
   var lastAllItems = [];
   var maxWashSlots = 0;
-  var maxDrySlots = 0;
   var inFlightController = null;
   var refreshTimerId = null;
 
@@ -387,9 +386,9 @@
           best = item.__tvLines[i];
         }
       }
-      return { st: processStatus(best), ss: processSubstatus(best) };
+      return normalizedProcessStatusSubstatus(best);
     }
-    return { st: processStatus(item), ss: processSubstatus(item) };
+    return normalizedProcessStatusSubstatus(item);
   }
 
   /**
@@ -495,6 +494,40 @@
     if (st === 3 && ss === 4) return true;
     if (st === 3 && ss === 5) return true;
     return false;
+  }
+
+  /**
+   * Пара f_status + f_ogp_data.f_substatus иногда расходятся (например 1/3: в шапке строки ещё «1»,
+   * а в OGP уже фаза 2/3). Как во Flutter: приводим к ближайшей допустимой паре, иначе orderProgress=0
+   * и модалка действий пустая.
+   */
+  function normalizedProcessStatusSubstatus(item) {
+    if (!item) return { st: NaN, ss: NaN };
+    var st = processStatus(item);
+    var ss = processSubstatus(item);
+    if (isNaN(st) || isNaN(ss)) return { st: st, ss: ss };
+    if (isKnownProcessPair(st, ss)) return { st: st, ss: ss };
+    if (st < 3 && (ss === 4 || ss === 5)) return { st: 3, ss: ss };
+    if (st < 2 && (ss === 2 || ss === 3)) return { st: 2, ss: ss };
+    return { st: st, ss: ss };
+  }
+
+  /**
+   * Сырая пара f_status + f_ogp_data.f_substatus не из допустимого набора (рассинхрон на сервере).
+   * Для сгруппированного заказа достаточно одной битой строки.
+   */
+  function isRawProcessPairInvalid(item) {
+    if (!item) return false;
+    if (item.__tvLines && item.__tvLines.length) {
+      for (var i = 0; i < item.__tvLines.length; i++) {
+        var r = item.__tvLines[i];
+        var st = processStatus(r);
+        var ss = processSubstatus(r);
+        if (!isKnownProcessPair(st, ss)) return true;
+      }
+      return false;
+    }
+    return !isKnownProcessPair(processStatus(item), processSubstatus(item));
   }
 
   /**
@@ -692,8 +725,9 @@
 
   function orderProgress(item) {
     if (!item) return 0;
-    var st = processStatus(item);
-    var ss = processSubstatus(item);
+    var n = normalizedProcessStatusSubstatus(item);
+    var st = n.st;
+    var ss = n.ss;
     if (st === 1 && ss === 1) return 1;
     if (st === 2 && ss === 2) return 2;
     if (st === 2 && ss === 3) return 3;
@@ -713,7 +747,8 @@
    */
   function minutesSinceEnteredDone34(item) {
     if (!item) return null;
-    if (processStatus(item) !== 3 || processSubstatus(item) !== 4) return null;
+    var nd = normalizedProcessStatusSubstatus(item);
+    if (nd.st !== 3 || nd.ss !== 4) return null;
     var dObj = ogpDataStrict(item);
     if (!dObj) return null;
     var start = ogpStatusSubTime(dObj, 3, 4);
@@ -764,8 +799,9 @@
 
   function shouldBlinkWashDryOvertimeSingle(row) {
     if (!row) return false;
-    var st = processStatus(row);
-    var ss = processSubstatus(row);
+    var n = normalizedProcessStatusSubstatus(row);
+    var st = n.st;
+    var ss = n.ss;
     if (st !== 2 || (ss !== 2 && ss !== 3)) return false;
     var mins = minutesSinceOgpPair(row, st, ss);
     if (mins == null || !isFinite(mins)) return false;
@@ -816,8 +852,9 @@
   /** Mirrors status/substatus from goods-in-progress API */
   function resolveStatusIconUrl(item, isQueued) {
     if (isQueued) return STATUS_ICON_BASE + "timer.png";
-    var st = processStatus(item);
-    var ss = processSubstatus(item);
+    var n = normalizedProcessStatusSubstatus(item);
+    var st = n.st;
+    var ss = n.ss;
     if (st === 2 && ss === 2) return STATUS_ICON_BASE + "shower.png";
     if (st === 2 && ss === 3) return STATUS_ICON_BASE + "fan.png";
     if (st === 3 && ss === 4) return STATUS_ICON_BASE + "timer.png";
@@ -1127,13 +1164,18 @@
       "row-inprog-ok",
       "is-queued",
       "row-blink-done34",
-      "row-blink-washdry-overtime"
+      "row-blink-washdry-overtime",
+      "row-process-invalid"
     );
+    if (isRawProcessPairInvalid(item)) {
+      rowEl.classList.add("row-process-invalid");
+    }
     if (isQueued) {
       rowEl.classList.add("row-pending");
     } else {
-      var pst = processStatus(disp);
-      var pss = processSubstatus(disp);
+      var pn = normalizedProcessStatusSubstatus(disp);
+      var pst = pn.st;
+      var pss = pn.ss;
       if (pst === 2 && pss === 2) rowEl.classList.add("row-inprog-wash");
       else rowEl.classList.add("row-inprog-ok");
       if (shouldBlinkDone34Row(item)) {
@@ -1291,57 +1333,22 @@
     return 0;
   }
 
-  /** Боксы сушки: `dry` рядом с `tables` в ответе goods-in-progress/get. */
-  function tryExtractDryCount(json) {
-    function len(v) {
-      return Array.isArray(v) ? v.length : 0;
-    }
-    if (!json) return 0;
-    if (len(json.dry) > 0) return len(json.dry);
-    if (json.data) {
-      if (len(json.data.dry) > 0) return len(json.data.dry);
-      if (Array.isArray(json.data) && json.data.length > 0) {
-        var first = json.data[0];
-        if (first && typeof first === "object") {
-          if (len(first.dry) > 0) return len(first.dry);
-          if (len(first.data && first.data.dry) > 0) return len(first.data.dry);
-        }
-        if (typeof first === "string") {
-          try {
-            var decoded = JSON.parse(first);
-            if (len(decoded.dry) > 0) return len(decoded.dry);
-            if (len(decoded.data && decoded.data.dry) > 0) return len(decoded.data.dry);
-          } catch (e) {
-            // ignore
-          }
-        }
-      }
-    }
-    return 0;
-  }
-
   function isWashTransition(status, substatus) {
     return Number(status) === 2 && Number(substatus) === 2;
   }
 
+  /** Уникальные заказы (шапка) в 2/2: несколько строк o_goods_process = одна машина = один пост. */
   function countWashInProgress(items) {
+    var seen = Object.create(null);
     var c = 0;
     for (var i = 0; i < items.length; i++) {
       var it = items[i] || {};
-      if (processStatus(it) === 2 && processSubstatus(it) === 2) c++;
-    }
-    return c;
-  }
-
-  function isDryTransition(status, substatus) {
-    return Number(status) === 2 && Number(substatus) === 3;
-  }
-
-  function countDryInProgress(items) {
-    var c = 0;
-    for (var i = 0; i < items.length; i++) {
-      var it = items[i] || {};
-      if (processStatus(it) === 2 && processSubstatus(it) === 3) c++;
+      var nw = normalizedProcessStatusSubstatus(it);
+      if (nw.st !== 2 || nw.ss !== 2) continue;
+      var k = headerKeyForRow(it);
+      if (seen[k]) continue;
+      seen[k] = true;
+      c++;
     }
     return c;
   }
@@ -1393,8 +1400,9 @@
   /** Время входа в текущую фазу (st/ss) — для сортировки «в работе» по возрастанию. */
   function inProgressEnteredAtMs(item) {
     if (!item) return Number.MAX_SAFE_INTEGER;
-    var st = processStatus(item);
-    var ss = processSubstatus(item);
+    var n = normalizedProcessStatusSubstatus(item);
+    var st = n.st;
+    var ss = n.ss;
     var dObj = ogpDataStrict(item);
     var raw = ogpStatusSubTime(dObj, st, ss);
     if (raw == null || raw === "") return Number.MAX_SAFE_INTEGER;
@@ -1409,8 +1417,9 @@
    */
   function inProgressPhaseRank(row) {
     if (!row) return 99;
-    var st = processStatus(row);
-    var ss = processSubstatus(row);
+    var n = normalizedProcessStatusSubstatus(row);
+    var st = n.st;
+    var ss = n.ss;
     if (st === 2 && ss === 2) return 0;
     if (st === 2 && ss === 3) return 1;
     if (st === 3 && ss === 4) return 2;
@@ -1542,6 +1551,7 @@
     return [order];
   }
 
+  /** Сколько постов мойки занимает переход: один заказ = одна машина = 1 (не число строк заказа). */
   function countLinesEnteringWash(order, status, substatus) {
     if (!(Number(status) === 2 && Number(substatus) === 2)) return 0;
     var lines = linesForOrderAction(order);
@@ -1551,19 +1561,7 @@
       var ss = processSubstatus(lines[i]);
       if (!(st === 2 && ss === 2)) c++;
     }
-    return c;
-  }
-
-  function countLinesEnteringDry(order, status, substatus) {
-    if (!(Number(status) === 2 && Number(substatus) === 3)) return 0;
-    var lines = linesForOrderAction(order);
-    var c = 0;
-    for (var i = 0; i < lines.length; i++) {
-      var st = processStatus(lines[i]);
-      var ss = processSubstatus(lines[i]);
-      if (!(st === 2 && ss === 3)) c++;
-    }
-    return c;
+    return c > 0 ? 1 : 0;
   }
 
   function effectiveRowForDisplay(item) {
@@ -1605,10 +1603,11 @@
    * Учитывает оставшееся время, а не «полный cook с начала», если фаза уже идёт.
    */
   function projectedBayFreeMsActiveWash(item, nowMs) {
-    if (processStatus(item) !== 2) return null;
+    var nWash = normalizedProcessStatusSubstatus(item);
+    if (nWash.st !== 2) return null;
     var dObj = ogpDataStrict(item);
     if (!dObj) return null;
-    var ss = processSubstatus(item);
+    var ss = nWash.ss;
     var cook = cookingMinutesFromRow(item);
     var washM = Number(dObj.f_washtime) || 0;
     var dryM = Number(dObj.f_drytime) || 0;
@@ -1657,7 +1656,7 @@
     var B = Math.max(1, bayCount | 0);
     var jobs = [];
     for (var i = 0; i < allItems.length; i++) {
-      if (processStatus(allItems[i]) !== 2) continue;
+      if (normalizedProcessStatusSubstatus(allItems[i]).st !== 2) continue;
       var t = projectedBayFreeMsActiveWash(allItems[i], nowMs);
       if (t != null && isFinite(t)) jobs.push(t);
     }
@@ -1771,14 +1770,13 @@
   }
 
   function splitByProgress(items) {
-    // Любой f_status==1 — «Ожидают» (даже если substatus не распарсился),
-    // 2/* и 3/* — «В работе».
+    // «Ожидают» — только 1/1. Рассинхрон 1/3 и т.п. после нормализации уходит в «В работе».
     var inProgress = [];
     var pending = [];
     for (var i = 0; i < items.length; i++) {
       var item = items[i] || {};
-      var st = processStatus(item);
-      var ss = processSubstatus(item);
+      var n = normalizedProcessStatusSubstatus(item);
+      var st = n.st;
       if (st === 1) pending.push(item);
       else if (st === 2 || st === 3) inProgress.push(item);
     }
@@ -1920,6 +1918,7 @@
 
   function closeActionModal() {
     if (overlayEl) {
+      overlayEl.classList.remove("overlay--process-invalid");
       overlayEl.style.display = "none";
       overlayEl.setAttribute("aria-hidden", "true");
     }
@@ -1927,13 +1926,17 @@
 
   function openActionModal(order) {
     if (!overlayEl || !dialogButtonsEl || !dialogTitleEl) return;
-    var st0 = processStatus(order);
-    var ss0 = processSubstatus(order);
+    overlayEl.classList.remove("overlay--process-invalid");
+    var n0 = normalizedProcessStatusSubstatus(order);
+    var st0 = n0.st;
+    var ss0 = n0.ss;
     var pr = orderProgress(order);
+    var rawInvalid = isRawProcessPairInvalid(order);
     var hdr = headerDataStrict(order) || {};
     var car = safeText(order.f_carnumber || order.f_car_number || hdr.f_car_number || "---");
     var boxNo = safeText(order.f_table || "").trim();
     dialogTitleEl.textContent =
+      (rawInvalid ? tr("process_data_invalid_badge") + " " : "") +
       car +
       " · " +
       safeText(
@@ -1942,17 +1945,34 @@
           (boxNo ? "BOX " + boxNo : tr("post_empty"))
       );
     dialogButtonsEl.textContent = "";
+    if (rawInvalid) {
+      overlayEl.classList.add("overlay--process-invalid");
+      var warn = document.createElement("p");
+      warn.className = "dialog-invalid-hint";
+      warn.textContent = tr("process_data_invalid");
+      dialogButtonsEl.appendChild(warn);
+    }
 
-    function addBtn(label, handler) {
+    function addBtn(label, handler, className) {
       var b = document.createElement("button");
       b.type = "button";
-      b.className = "btn btn-block";
+      b.className = "btn btn-block" + (className ? " " + className : "");
       b.textContent = label;
       b.onclick = function () {
         if (actionBusy) return;
         handler();
       };
       dialogButtonsEl.appendChild(b);
+    }
+
+    if (rawInvalid) {
+      addBtn(
+        tr("btn_fix_to_1_1"),
+        function () {
+          postStatusChange(order, 1, 1);
+        },
+        "btn-primary"
+      );
     }
 
     // 1/1 → 2/2 или 2/3; 2/2 ↔ 2/3 ↔ 1 свободно; 2/2|2/3 → 3/4|3/5 как раньше
@@ -2013,15 +2033,7 @@
         return;
       }
     }
-    if (isDryTransition(status, substatus) && maxDrySlots > 0) {
-      var currentDry = countDryInProgress(lastAllItems);
-      var enteringDry = countLinesEnteringDry(order, status, substatus);
-      var nextDry = currentDry + enteringDry;
-      if (nextDry > maxDrySlots) {
-        openLimitModal(tr("err_dry_limit", { max: maxDrySlots }), "dry_limit_title");
-        return;
-      }
-    }
+    // Сушка 2/3: лимит по количеству постов в зале не применяем (см. dry в ответе API).
     if (archiveStatusRequiresPaidOrder(status, substatus)) {
       if (!headerPaidByAmountOtherZero(order)) {
         openLimitModal(
@@ -2031,9 +2043,8 @@
         return;
       }
     }
-    var fromSt = processStatus(order);
-    var fromSs = processSubstatus(order);
-    var fromLabel = statusLabel(fromSt, fromSs);
+    var nFrom = normalizedProcessStatusSubstatus(order);
+    var fromLabel = statusLabel(nFrom.st, nFrom.ss);
     var toLabel = statusLabel(status, substatus);
     askStatusChangeConfirm(fromLabel, toLabel).then(function (ok) {
       if (!ok) {
@@ -2289,12 +2300,10 @@
         var all = tryDecodeProcessListPayload(json);
         lastAllItems = Array.isArray(all) ? all : [];
         maxWashSlots = tryExtractTablesCount(json);
-        maxDrySlots = tryExtractDryCount(json);
         logDebug("response.parsedList", {
           count: all.length,
           first: all.length ? all[0] : null,
-          tables: maxWashSlots,
-          dry: maxDrySlots
+          tables: maxWashSlots
         });
         if (DEBUG_LOG && typeof console !== "undefined") {
           try {

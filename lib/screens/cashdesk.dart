@@ -4,10 +4,15 @@ import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/screens/app/question_bloc.dart';
 import 'package:carwash/screens/app/screen.dart';
+import 'package:carwash/utils/kbd.dart';
 import 'package:carwash/utils/prefs.dart';
+import 'package:carwash/widgets/app_nav_popup_menu.dart';
 import 'package:carwash/widgets/dialogs.dart';
+import 'package:carwash/widgets/text_form_field.dart';
+import 'package:carwash/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 
 part 'cashdesk.part.dart';
 
@@ -56,6 +61,7 @@ class CashdeskScreen extends AppScreen {
         IconButton(
             onPressed: () => _model.closeDay(model),
             icon: const Icon(Icons.edit_calendar_sharp)),
+        AppNavPopupMenuButton(model: model),
       ],
     );
   }
@@ -93,7 +99,7 @@ class CashdeskScreen extends AppScreen {
           ),
           child: ListView.separated(
             itemCount: _model.printing.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, __) => const SizedBox(height: 6),
             itemBuilder: (_, i) {
               final row = _model.printing[i];
               return ListTile(

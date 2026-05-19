@@ -1,0 +1,34 @@
+/* db - 148 09.03.2024 */
+update s_app set f_version='148' where f_app='DB';
+drop trigger if exists c_groups_trigger_bi;
+drop trigger if exists c_groups_trigger_bu ;
+drop trigger if exists c_goods_bi ;
+drop trigger if exists c_goods_bu ;
+drop trigger if exists c_goods_prices_trigger_bi ;
+drop trigger if exists c_goods_prices_trigger_bu ;
+drop trigger if exists o_header_trigger_bi ;
+drop trigger if exists o_header_trigger_bu ;
+drop trigger if exists a_header_trigger_bi ;
+drop trigger if exists a_header_trigger_bu ;
+drop trigger if exists c_units_trigger_bi ;
+drop trigger if exists c_units_trigger_bu ;
+drop trigger if exists o_goods_trigger_bi ;
+drop trigger if exists o_goods_trigger_bu ;
+drop trigger if exists a_header_cash_trigger_bi ;
+drop trigger if exists a_header_cash_trigger_bu ;
+drop trigger if exists a_store_draft_trigger_bi ;
+drop trigger if exists a_header_cash_trigger_bu ;
+drop trigger if exists a_store_trigger_bi ;
+drop trigger if exists a_store_trigger_bu ;
+drop trigger if exists e_cash_trigger_bi ;
+drop trigger if exists e_cash_trigger_bu ;
+drop trigger if exists s_user_group_trigger_bi ;
+drop trigger if exists s_user_group_trigger_bu ;
+drop trigger if exists s_user_trigger_bi ;
+drop trigger if exists s_user_trigger_bu ;
+drop trigger if exists o_tax_trigger_bi ;
+drop trigger if exists o_tax_trigger_bu ;
+
+alter table a_store_sale add column f_id integer primary key auto_increment first;
+ALTER TABLE `d_stoplist` DROP PRIMARY KEY;
+alter table d_stoplist add column f_id integer primary key AUTO_INCREMENT first ;

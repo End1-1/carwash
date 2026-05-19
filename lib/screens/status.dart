@@ -1,6 +1,7 @@
 import 'package:carwash/screens/app/appbloc.dart';
 import 'package:carwash/screens/app/screen.dart';
 import 'package:carwash/utils/prefs.dart';
+import 'package:carwash/widgets/app_nav_popup_menu.dart';
 import 'package:carwash/widgets/text_form_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,6 +31,7 @@ class StatusScreen extends AppScreen {
             icon: const Icon(Icons.refresh_outlined),
             onPressed: getReport,
           ),
+          AppNavPopupMenuButton(model: model),
         ]);
   }
 

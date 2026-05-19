@@ -1,11 +1,22 @@
 part of 'history.dart';
 
+/// Первая колонка блока оплат в строке отчёта `cashsessions` (как `_payMethodByIndex`).
+const int _kReportPaymentColumnBase = 11;
+
 /// OGP в ответе `goods-in-progress/get`: `f_ogp_data` (раньше алиас `JSON_DETAILED(ogp.f_data)`).
 const String _kOgpDataKeyLegacy = 'JSON_DETAILED(ogp.f_data)';
 
 enum HistoryViewMode {
   report,
   goodsDoneParking,
+}
+
+enum HistoryGoodsPaymentFilter {
+  all,
+  unpaid,
+  cash,
+  card,
+  idram,
 }
 
 class HistoryGoodsRow {
@@ -21,6 +32,16 @@ class HistoryGoodsRow {
   final int? processSubstatus;
   final bool canPay;
   final String paymentLabel;
+  /// Для таблицы: к оплате (`f_amount_other`) или сумма заказа.
+  final String amountLabel;
+  /// То же число, что в [amountLabel], для строки «Итого» (0 если «—»).
+  final double amountValue;
+  /// Очередь ожидания после нормализации статусов (`1/1` → «Ожидает»).
+  final bool isWaitingQueue;
+  /// Из шапки для клиентского фильтра по способу оплаты.
+  final double paidCash;
+  final double paidCard;
+  final double paidIdram;
 
   HistoryGoodsRow({
     required this.car,
@@ -33,25 +54,55 @@ class HistoryGoodsRow {
     required this.processSubstatus,
     required this.canPay,
     required this.paymentLabel,
+    required this.amountLabel,
+    required this.amountValue,
+    required this.isWaitingQueue,
+    required this.paidCash,
+    required this.paidCard,
+    required this.paidIdram,
   });
 }
 
 class HistoryModel {
   int sessionId = 0;
   String sessionTitle = '';
+  /// Чтобы AppBar перерисовывал подпись смены без нового события [AppBloc].
+  final sessionTitleListenable = ValueNotifier<String>('');
   final sessions = <Map<String, dynamic>>[];
-  final printing = <String>[];
+  /// Строки SELECT из `form_cashsessions` — для клиентского фильтра и отображения.
+  final reportRowsRaw = <List<dynamic>>[];
   /// Отфильтрованные 3/4 и 3/5 для табличного режима.
   final goodsRows = <HistoryGoodsRow>[];
   final viewMode = ValueNotifier(HistoryViewMode.report);
+  /// Быстрый фильтр для «Готово / парковка» (клиент).
+  final goodsPaymentFilter =
+      ValueNotifier(HistoryGoodsPaymentFilter.all);
+  /// То же для отчёта смены (`historyModeReport`).
+  final reportPaymentFilter =
+      ValueNotifier(HistoryGoodsPaymentFilter.all);
+  /// Поиск по номеру авто на вкладке «Готово / парковка».
+  final goodsCarSearchController = TextEditingController();
 
   HistoryModel({HistoryViewMode initialMode = HistoryViewMode.report}) {
     viewMode.value = initialMode;
+    sessionId = prefs.getInt('cashsession') ?? 0;
+    sessionTitleListenable.value =
+        sessionId > 0 ? 'Session #$sessionId' : '';
     if (initialMode == HistoryViewMode.goodsDoneParking) {
       loadGoodsProcess();
     } else {
       loadLastSessions();
     }
+  }
+
+  /// Как в кассе: максимальный `value` в ответе `last-30-sessions` — последняя смена.
+  int newestSessionIdFromLast30() {
+    var best = 0;
+    for (final e in sessions) {
+      final v = int.tryParse('${e['value']}') ?? 0;
+      if (v > best) best = v;
+    }
+    return best;
   }
 
   void loadLastSessions() {
@@ -60,6 +111,9 @@ class HistoryModel {
   }
 
   void loadReport() {
+    if (sessionId <= 0) {
+      return;
+    }
     BlocProvider.of<AppBloc>(prefs.context()).add(AppEventQueryShift(
         '/engine/v2/officen/editors/get-all',
         <String, dynamic>{
@@ -94,34 +148,94 @@ extension HistoryE on HistoryScreen {
       _model.sessions
         ..clear()
         ..addAll(values.map((e) => Map<String, dynamic>.from(e as Map)));
-      if (_model.sessionId <= 0 && _model.sessions.isNotEmpty) {
-        _model.sessionId = int.tryParse('${_model.sessions.first['value']}') ?? 0;
+      final active = prefs.getInt('cashsession') ?? 0;
+      if (active > 0) {
+        _model.sessionId = active;
+      } else if (_model.sessions.isNotEmpty) {
+        _model.sessionId = _model.newestSessionIdFromLast30();
+      } else {
+        _model.sessionId = 0;
       }
       _updateSessionTitle();
-      _model.loadReport();
+      if (_model.sessionId > 0) {
+        _model.loadReport();
+      } else {
+        _model.reportRowsRaw.clear();
+      }
       return;
     }
     final rows = payload['rows'];
     if (rows is List) {
-      final visible = <String>[];
-      for (final r in rows) {
-        if (r is List) {
-          visible.add(_compactHistoryRow(r));
-        }
-      }
-      _model.printing
+      _model.reportRowsRaw
         ..clear()
-        ..addAll(visible);
+        ..addAll(rows.whereType<List>().map(List<dynamic>.from));
     }
+  }
+
+  bool _reportRowHasCash(List<dynamic> row) =>
+      row.length > _kReportPaymentColumnBase &&
+      _toMoney(row[_kReportPaymentColumnBase]) > 0.009;
+
+  bool _reportRowHasCard(List<dynamic> row) =>
+      row.length > _kReportPaymentColumnBase + 1 &&
+      _toMoney(row[_kReportPaymentColumnBase + 1]) > 0.009;
+
+  bool _reportRowHasIdram(List<dynamic> row) =>
+      row.length > _kReportPaymentColumnBase + 3 &&
+      _toMoney(row[_kReportPaymentColumnBase + 3]) > 0.009;
+
+  double _reportRowTotal(List<dynamic> row) =>
+      row.length > 10 ? _toMoney(row[10]) : 0;
+
+  /// Нет сумм наличные / карта / Idram при ненулевом Total (прочее — банк, безнал и т.д.).
+  bool _reportRowMatchesUnpaid(List<dynamic> row) {
+    final total = _reportRowTotal(row);
+    if (total <= 0.009) return false;
+    return !_reportRowHasCash(row) &&
+        !_reportRowHasCard(row) &&
+        !_reportRowHasIdram(row);
+  }
+
+  List<List<dynamic>> _filteredReportRows(HistoryGoodsPaymentFilter f) {
+    final source = _model.reportRowsRaw;
+    switch (f) {
+      case HistoryGoodsPaymentFilter.all:
+        return List<List<dynamic>>.from(source);
+      case HistoryGoodsPaymentFilter.unpaid:
+        return source.where(_reportRowMatchesUnpaid).toList();
+      case HistoryGoodsPaymentFilter.cash:
+        return source.where(_reportRowHasCash).toList();
+      case HistoryGoodsPaymentFilter.card:
+        return source.where(_reportRowHasCard).toList();
+      case HistoryGoodsPaymentFilter.idram:
+        return source.where(_reportRowHasIdram).toList();
+    }
+  }
+
+  double _sumReportRowsTotal(List<List<dynamic>> rows) {
+    var s = 0.0;
+    for (final r in rows) {
+      if (r.length > 10) {
+        s += _toMoney(r[10]);
+      }
+    }
+    return s;
   }
 
   void handleGoodsProcessState(dynamic raw) {
     if (raw is! Map) return;
     final data = Map<String, dynamic>.from(raw);
     final items = _decodeProcessListRows(data);
+    final merged = _groupProcessRowsByHeader(items)
+      ..sort((a, b) {
+        final byT =
+            _sortKeyOrderTakenMs(a).compareTo(_sortKeyOrderTakenMs(b));
+        if (byT != 0) return byT;
+        return _headerKeyForRow(a).compareTo(_headerKeyForRow(b));
+      });
     final l10n = AppLocalizations.of(prefs.context())!;
     final filtered = <HistoryGoodsRow>[];
-    for (final row in items) {
+    for (final row in merged) {
       filtered.add(_goodsDisplayRow(row, l10n));
     }
     _model.goodsRows
@@ -144,13 +258,34 @@ extension HistoryE on HistoryScreen {
     return _normalizeRowList(data);
   }
 
+  /// Декодирует поле из API (строка JSON или уже `Map`). До 3 проходов — на случай
+  /// двойного JSON-string от прокси/БД.
   Map<String, dynamic>? _parseJsonMapField(dynamic v) {
-    if (v is Map) return Map<String, dynamic>.from(v);
-    if (v is String && v.isNotEmpty) {
+    if (v is Map) {
       try {
-        final d = jsonDecode(v);
-        if (d is Map) return Map<String, dynamic>.from(d);
-      } catch (_) {}
+        return Map<String, dynamic>.from(v);
+      } catch (_) {
+        return null;
+      }
+    }
+    if (v is! String || v.trim().isEmpty) return null;
+    var s = v.trim();
+    if (s.startsWith('\uFEFF')) s = s.substring(1);
+    dynamic cur = s;
+    for (var i = 0; i < 3; i++) {
+      if (cur is Map) {
+        try {
+          return Map<String, dynamic>.from(cur);
+        } catch (_) {
+          return null;
+        }
+      }
+      if (cur is! String) return null;
+      try {
+        cur = jsonDecode(cur.trim());
+      } catch (_) {
+        return null;
+      }
     }
     return null;
   }
@@ -159,6 +294,170 @@ extension HistoryE on HistoryScreen {
     final out = <Map<String, dynamic>>[];
     for (final e in list) {
       if (e is Map) out.add(Map<String, dynamic>.from(e));
+    }
+    return out;
+  }
+
+  /// Как [migrate-html] `headerKeyForRow`: `f_header_id`, иначе `f_header`, иначе `f_id`.
+  String _headerKeyForRow(Map<String, dynamic> row) {
+    final v = row['f_header_id'] ?? row['f_header'];
+    final s = v != null ? '$v'.trim() : '';
+    if (s.isNotEmpty && s != '0') return 'h:$s';
+    final id = '${row['f_id'] ?? ''}'.trim();
+    return 'id:${id.isEmpty ? '0' : id}';
+  }
+
+  int _compareProcessLineIds(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final sa = '${a['f_id'] ?? ''}'.trim();
+    final sb = '${b['f_id'] ?? ''}'.trim();
+    final na = int.tryParse(sa);
+    final nb = int.tryParse(sb);
+    if (na != null && nb != null && na != nb) {
+      return na.compareTo(nb);
+    }
+    return sa.compareTo(sb);
+  }
+
+  /// Момент времени для пары (st, ss) в `f_ogp_data` — см. migrate-html `ogpStatusSubTime`.
+  String? _ogpStatusSubTime(Map<String, dynamic>? d, int st, int ss) {
+    if (d == null) return null;
+    final key = 'f_status_${st}_${ss}_time';
+    dynamic v = d[key];
+    if (v != null && '$v'.trim().isNotEmpty) return '$v'.trim();
+    if (st == 1 && ss == 1) {
+      v = d['f_status_1_time'];
+      if (v != null && '$v'.trim().isNotEmpty) return '$v'.trim();
+    }
+    if (st == 2 && ss == 2) {
+      v = d['f_status_2_time'];
+      if (v != null && '$v'.trim().isNotEmpty) return '$v'.trim();
+    }
+    if (st == 2 && ss == 3) {
+      v = d['f_status_3_time'] ?? d['f_status_2_time'];
+      if (v != null && '$v'.trim().isNotEmpty) return '$v'.trim();
+    }
+    if (st == 3 && ss == 4) {
+      v = d['f_status_4_time'] ?? d['f_status_3_time'];
+      if (v != null && '$v'.trim().isNotEmpty) return '$v'.trim();
+    }
+    if (st == 3 && ss == 5) {
+      v = d['f_status_3_time'] ?? d['f_parking_time'] ?? d['f_status_5_time'];
+      if (v != null && '$v'.trim().isNotEmpty) return '$v'.trim();
+    }
+    return null;
+  }
+
+  double _timeMsFromOgpRaw(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return double.infinity;
+    final s = raw.trim();
+    var d = DateTime.tryParse(s);
+    if (d == null) {
+      d = DateTime.tryParse(s.replaceFirst(' ', 'T'));
+    }
+    if (d == null) return double.infinity;
+    return d.millisecondsSinceEpoch.toDouble();
+  }
+
+  double _pendingQueueTimeMs(Map<String, dynamic> row) {
+    final ogp = _ogpDataStrict(row);
+    final raw = _ogpStatusSubTime(ogp, 1, 1);
+    return _timeMsFromOgpRaw(raw);
+  }
+
+  double _inProgressEnteredAtMs(Map<String, dynamic> row) {
+    final st = _processStatus(row);
+    final ss = _resolvedSubstatus(row);
+    if (st == null || ss == null) return double.infinity;
+    final ogp = _ogpDataStrict(row);
+    final raw = _ogpStatusSubTime(ogp, st, ss);
+    return _timeMsFromOgpRaw(raw);
+  }
+
+  /// Время «взятия» заказа: очередь 1/1 — по времени постановки; иначе — вход в текущий статус.
+  double _sortKeyOrderTakenMs(Map<String, dynamic> row) {
+    final q = _pendingQueueTimeMs(row);
+    if (q.isFinite) return q;
+    final p = _inProgressEnteredAtMs(row);
+    if (p.isFinite) return p;
+    return double.infinity;
+  }
+
+  Map<String, dynamic> _pickPrimaryPending(List<Map<String, dynamic>> lines) {
+    Map<String, dynamic>? best;
+    var bestT = double.infinity;
+    for (final line in lines) {
+      final t = _pendingQueueTimeMs(line);
+      if (t < bestT) {
+        bestT = t;
+        best = line;
+      }
+    }
+    return best ?? lines.first;
+  }
+
+  Map<String, dynamic> _pickPrimaryInProgress(List<Map<String, dynamic>> lines) {
+    Map<String, dynamic>? best;
+    var bestT = double.infinity;
+    for (final line in lines) {
+      final t = _inProgressEnteredAtMs(line);
+      if (t < bestT) {
+        bestT = t;
+        best = line;
+      }
+    }
+    return best ?? lines.first;
+  }
+
+  /// Очередь 1/1 — как `pickPrimaryPending`; иначе как `pickPrimaryInProgress` (migrate-html).
+  Map<String, dynamic> _pickPrimaryMerged(List<Map<String, dynamic>> lines) {
+    final allPending = lines.every((r) {
+      final st = _processStatus(r);
+      if (st != 1) return false;
+      final ss = _resolvedSubstatus(r);
+      return ss == null || ss == 1;
+    });
+    if (allPending) {
+      return _pickPrimaryPending(lines);
+    }
+    return _pickPrimaryInProgress(lines);
+  }
+
+  String _combinedServiceNames(List<Map<String, dynamic>> lines) {
+    final parts = <String>[];
+    for (final line in lines) {
+      final name = '${line['f_name'] ?? ''}'.trim();
+      if (name.isNotEmpty) parts.add(name);
+    }
+    return parts.isEmpty ? '—' : parts.join('\n');
+  }
+
+  /// Несколько строк `o_goods_process` с одним шапочным id — одна строка таблицы (как `groupRowsByHeader` в migrate-html).
+  List<Map<String, dynamic>> _groupProcessRowsByHeader(
+    List<Map<String, dynamic>> items,
+  ) {
+    final map = <String, List<Map<String, dynamic>>>{};
+    final keyOrder = <String>[];
+    for (final r in items) {
+      final k = _headerKeyForRow(r);
+      if (!map.containsKey(k)) {
+        keyOrder.add(k);
+        map[k] = <Map<String, dynamic>>[];
+      }
+      map[k]!.add(r);
+    }
+    final out = <Map<String, dynamic>>[];
+    for (final k in keyOrder) {
+      final lines = map[k]!;
+      if (lines.length == 1) {
+        out.add(lines.single);
+        continue;
+      }
+      final sorted = List<Map<String, dynamic>>.from(lines)
+        ..sort(_compareProcessLineIds);
+      final primary = _pickPrimaryMerged(sorted);
+      final merged = Map<String, dynamic>.from(primary);
+      merged['f_name'] = _combinedServiceNames(sorted);
+      out.add(merged);
     }
     return out;
   }
@@ -172,7 +471,9 @@ extension HistoryE on HistoryScreen {
     return _parseJsonMapField(row[_kOgpDataKeyLegacy]);
   }
 
-  /// `JSON_DETAILED(oh.f_data) AS f_header_data`
+  /// Шапка заказа: в ответе `goods-in-progress/get` это `f_header_data` — по сути
+  /// `o_header.f_data` (оплаты, номер, фискал). Полный `o_goods.f_data` по строкам
+  /// корзины этим запросом не отдаётся; время готовки берётся отдельным полем SQL.
   Map<String, dynamic>? _headerDataStrict(Map<String, dynamic> row) {
     return _parseJsonMapField(row['f_header_data']);
   }
@@ -202,7 +503,45 @@ extension HistoryE on HistoryScreen {
 
   bool _canPayFromHeader(Map<String, dynamic> hdr) {
     final other = _money(hdr['f_amount_other'] ?? hdr['f_amountother']);
-    return other > 0.009;
+    if (other > 0.009) return true;
+
+    final cash = _money(hdr['f_amount_cash'] ?? hdr['f_amountcash']);
+    final card = _money(hdr['f_amount_card'] ?? hdr['f_amountcard']);
+    final idram = _money(hdr['f_amount_idram'] ?? hdr['f_amountidram']);
+    final paid = cash + card + idram;
+
+    final subTotal = _money(hdr['f_sub_total'] ?? hdr['f_subtotal']);
+    final total = _money(hdr['f_amounttotal'] ?? hdr['f_amount_total']);
+    final orderTotal = subTotal > 0.009 ? subTotal : total;
+
+    // Legacy rows can miss f_amount_other and all payment fields in f_data:
+    // treat them as unpaid full amount to keep payment available in history.
+    if (orderTotal > 0.009 && paid <= 0.009) return true;
+
+    return false;
+  }
+
+  String _formatMoneyTable(double v) {
+    if (v == v.roundToDouble()) return '${v.round()}';
+    return v.toStringAsFixed(2);
+  }
+
+  /// Число для колонки «Сумма» и для итога: «прочее», иначе сумма заказа.
+  double _amountValueFromHeader(Map<String, dynamic> hdr) {
+    final other = _money(hdr['f_amount_other'] ?? hdr['f_amountother']);
+    if (other > 0.009) return other;
+    final subTotal = _money(hdr['f_sub_total'] ?? hdr['f_subtotal']);
+    if (subTotal > 0.009) return subTotal;
+    final total = _money(hdr['f_amounttotal'] ?? hdr['f_amount_total']);
+    if (total > 0.009) return total;
+    return 0;
+  }
+
+  /// В колонке «Сумма»: неоплаченный остаток по «прочее», иначе сумма заказа.
+  String _amountLabelFromHeader(Map<String, dynamic> hdr) {
+    final v = _amountValueFromHeader(hdr);
+    if (v <= 0.009) return '—';
+    return '${_formatMoneyTable(v)} ֏';
   }
 
   int? _processStatus(Map<String, dynamic> row) =>
@@ -219,6 +558,25 @@ extension HistoryE on HistoryScreen {
     }
     if (st == 1) return 1;
     return null;
+  }
+
+  /// Как в migrate-html: 1/1, 2/2, 2/3, 3/4, 3/5.
+  bool _isKnownProcessPair(int st, int ss) {
+    if (st == 1 && ss == 1) return true;
+    if (st == 2 && (ss == 2 || ss == 3)) return true;
+    if (st == 3 && (ss == 4 || ss == 5)) return true;
+    return false;
+  }
+
+  /// Если `f_status` и `f_ogp_data.f_substatus` расходятся (частый случай 2/4),
+  /// подстатусы 4 и 5 относятся только к `f_status == 3`.
+  (int?, int?) _normalizedProcessStatusSubstatus(Map<String, dynamic> row) {
+    final st = _processStatus(row);
+    final ss = _resolvedSubstatus(row);
+    if (st == null || ss == null) return (st, ss);
+    if (_isKnownProcessPair(st, ss)) return (st, ss);
+    if (st < 3 && (ss == 4 || ss == 5)) return (3, ss);
+    return (st, ss);
   }
 
   /// `oh.f_id AS f_header_id`
@@ -245,9 +603,10 @@ extension HistoryE on HistoryScreen {
     Map<String, dynamic> row,
     AppLocalizations l10n,
   ) {
-    final st = _processStatus(row);
-    final ss = _resolvedSubstatus(row);
+    final (st, ss) = _normalizedProcessStatusSubstatus(row);
     if (st == 1 && ss == 1) return l10n.pending;
+    if (st == 2 && ss == 2) return l10n.historyStatusWash;
+    if (st == 2 && ss == 3) return l10n.historyStatusDry;
     if (st == 3 && ss == 4) return l10n.historyStatusDone;
     if (st == 3 && ss == 5) return l10n.historyStatusParking;
     if (st != null && ss != null) return '$st/$ss';
@@ -265,11 +624,15 @@ extension HistoryE on HistoryScreen {
     var service = '${row['f_name'] ?? ''}'.trim();
     if (service.isEmpty) service = '—';
     final daily = '${row['f_daily_number'] ?? ''}'.trim();
-    final st = _processStatus(row);
-    final ss = _resolvedSubstatus(row);
+    final (st, ss) = _normalizedProcessStatusSubstatus(row);
     final statusLabel = _statusLabelForRow(row, l10n);
     final canPay = _canPayFromHeader(hdr);
     final paymentLabel = _paymentLabelFromHeader(hdr, l10n);
+    final amountLabel = _amountLabelFromHeader(hdr);
+    final amountValue = _amountValueFromHeader(hdr);
+    final paidCash = _money(hdr['f_amount_cash'] ?? hdr['f_amountcash']);
+    final paidCard = _money(hdr['f_amount_card'] ?? hdr['f_amountcard']);
+    final paidIdram = _money(hdr['f_amount_idram'] ?? hdr['f_amountidram']);
     return HistoryGoodsRow(
       car: car,
       service: service,
@@ -281,6 +644,12 @@ extension HistoryE on HistoryScreen {
       processSubstatus: ss,
       canPay: canPay,
       paymentLabel: paymentLabel,
+      amountLabel: amountLabel,
+      amountValue: amountValue,
+      isWaitingQueue: st == 1 && ss == 1,
+      paidCash: paidCash,
+      paidCard: paidCard,
+      paidIdram: paidIdram,
     );
   }
 
@@ -294,16 +663,19 @@ extension HistoryE on HistoryScreen {
 
   String _compactHistoryRow(List row) {
     // cashsessions.php SELECT layout:
-    // 0:id, 1:session, 2:order(prefix), 5:open-datetime, 9:total, 10..N-2:payments, N-1:service
-    final openDate = row.length > 5 ? '${row[5] ?? ''}'.trim() : '';
+    // 0:id, 1:session, 2:prefix, 3:hall, 4:table, 5:car, 6:open, 7:close, 8:staff,
+    // 9:cashier, 10:total, 11..N-2:payments, N-1:service
+    final openDate = row.length > 6 ? '${row[6] ?? ''}'.trim() : '';
+    final carRaw = row.length > 5 ? '${row[5] ?? ''}'.trim() : '';
+    final car = carRaw.isEmpty ? '—' : carRaw;
     final orderCodeRaw = row.length > 2 ? '${row[2] ?? ''}'.trim() : '';
     final orderCode = orderCodeRaw.isEmpty
         ? (row.isNotEmpty ? '${row[0] ?? ''}'.trim() : '')
         : orderCodeRaw;
 
-    final total = row.length > 9 ? '${row[9] ?? ''}'.trim() : '0';
-    final payStart = 10;
-    final payEndExclusive = row.length > 11 ? row.length - 1 : row.length;
+    final total = row.length > 10 ? '${row[10] ?? ''}'.trim() : '0';
+    final payStart = 11;
+    final payEndExclusive = row.length > 12 ? row.length - 1 : row.length;
     final methods = <String>[];
     for (var i = payStart; i < payEndExclusive; i++) {
       final amount = _toMoney(row[i]);
@@ -312,7 +684,7 @@ extension HistoryE on HistoryScreen {
       }
     }
     final methodLabel = methods.isEmpty ? '-' : methods.join('+');
-    return '$openDate | $total ($methodLabel) | $orderCode';
+    return '$openDate | $car | $total ($methodLabel) | $orderCode';
   }
 
   double _toMoney(dynamic v) {
@@ -351,6 +723,13 @@ extension HistoryE on HistoryScreen {
     );
     final text = '${row['text'] ?? ''}'.trim();
     _model.sessionTitle = text.isEmpty ? 'Session #${_model.sessionId}' : text;
+    final v = _model.sessionTitle;
+    // Не вызывать notifyListeners смены из build [BlocBuilder] в body — post-frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_model.sessionTitleListenable.value != v) {
+        _model.sessionTitleListenable.value = v;
+      }
+    });
   }
 
   void chooseSession() {
@@ -371,6 +750,8 @@ extension HistoryE on HistoryScreen {
   void refreshReport() {
     if (_model.viewMode.value == HistoryViewMode.goodsDoneParking) {
       _model.loadGoodsProcess();
+    } else if (_model.sessionId <= 0) {
+      _model.loadLastSessions();
     } else {
       _model.loadReport();
     }

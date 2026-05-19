@@ -188,7 +188,46 @@ class AppLocalizationsHy extends AppLocalizations {
   String get process => 'Գործընթաց';
 
   @override
-  String get cashdesk => 'Դրամարկղ';
+  String get cashdesk => 'Պատվերներ հերթափոխով';
+
+  @override
+  String get cashReports => 'Դրամարկղի հաշվետվություններ';
+
+  @override
+  String get cashRemainsTitle => 'Դրամարկղի մնացորդներ (30 հերթափոխ)';
+
+  @override
+  String get cashRemainsNoData => 'Փակված հերթափոխերի տվյալներ չկան';
+
+  @override
+  String get cashdeskCloseQuestion => 'Փակե՞լ ակտիվ դրամարկղի հերթափոխը։';
+
+  @override
+  String get cashMoveMoneyTitle => 'Դրամի մուտք/ելք';
+
+  @override
+  String get cashMoveMoneyInput => 'Մուտք';
+
+  @override
+  String get cashMoveMoneyOutput => 'Ելք';
+
+  @override
+  String get cashMoveMoneyAmount => 'Գումար';
+
+  @override
+  String get cashMoveMoneyComment => 'Մեկնաբանություն';
+
+  @override
+  String get cashMoveMoneySave => 'Պահպանել';
+
+  @override
+  String get cashMoveMoneyEnterAmount => 'Մուտքագրեք գումարը';
+
+  @override
+  String get cashMoveMoneyFailed => 'Դրամարկղի գործողությունը չհաջողվեց';
+
+  @override
+  String get cashMoveMoneyPresetWithdraw => 'միջոցների ելք';
 
   @override
   String get history => 'Պատմություն';
@@ -203,6 +242,9 @@ class AppLocalizationsHy extends AppLocalizations {
   String get historyModeDoneParking => 'Ավարտված / կայան';
 
   @override
+  String get historyColRow => 'Տող';
+
+  @override
   String get historyColCar => 'Ավտո';
 
   @override
@@ -215,13 +257,62 @@ class AppLocalizationsHy extends AppLocalizations {
   String get historyColStatus => 'Կարգավիճակ';
 
   @override
+  String get historyColAmount => 'Գումար';
+
+  @override
+  String get historyGoodsTotal => 'Ընդամենը';
+
+  @override
+  String get historyReportColOpened => 'Բացված';
+
+  @override
+  String historyReportOrdersCount(int count) {
+    return 'Պատվերներ՝ $count';
+  }
+
+  @override
+  String historyRowsInTable(int count) {
+    return 'Տողեր՝ $count';
+  }
+
+  @override
+  String get historyNoReportData => 'Հաշվետվության տվյալներ չկան';
+
+  @override
+  String historyWaitingCars(int count) {
+    return 'Սպասման մեջ՝ $count';
+  }
+
+  @override
   String get historyStatusDone => 'Ավարտված';
+
+  @override
+  String get historyStatusWash => 'Լվացում';
+
+  @override
+  String get historyStatusDry => 'Չորացում';
 
   @override
   String get historyStatusParking => 'Կայան';
 
   @override
   String get historyNoGoodsRows => 'Չկան «ավարտված» կամ «կայան» տողեր';
+
+  @override
+  String get historyGoodsFilterAll => 'Բոլորը';
+
+  @override
+  String get historyGoodsFilterUnpaid => 'Չվճարված';
+
+  @override
+  String get historyGoodsFilterNoRows => 'Այս զտիչին համապատասխան տողեր չկան';
+
+  @override
+  String get historyGoodsSearchCarHint => 'Որոնում ըստ ավտոմոբիլի համարի';
+
+  @override
+  String get historyGoodsCarSearchNoMatch =>
+      'Այս հարցմանը համապատասխան համարներ չկան';
 
   @override
   String get historyPay => 'Վճարել';

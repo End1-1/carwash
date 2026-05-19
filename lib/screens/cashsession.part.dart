@@ -8,7 +8,7 @@ extension CashSessionExt on CashSession {
       return;
     }
     BlocProvider.of<AppBloc>(prefs.context()).add(AppEventQueryOpenSession(
-      '/engine/v2/waiter/cashbox/open',
+        '/engine/v2/carwash/cashbox/open',
       <String, dynamic>{
         'cashbox_id': cid,
         'amount_open': 0,

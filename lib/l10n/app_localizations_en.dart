@@ -190,7 +190,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get process => 'Process';
 
   @override
-  String get cashdesk => 'Cashdesk';
+  String get cashdesk => 'Orders by shift';
+
+  @override
+  String get cashReports => 'Cash reports';
+
+  @override
+  String get cashRemainsTitle => 'Cash remains (last 30 shifts)';
+
+  @override
+  String get cashRemainsNoData => 'No data for closed shifts';
+
+  @override
+  String get cashdeskCloseQuestion => 'Close active cash session?';
+
+  @override
+  String get cashMoveMoneyTitle => 'Cash in/out';
+
+  @override
+  String get cashMoveMoneyInput => 'In';
+
+  @override
+  String get cashMoveMoneyOutput => 'Out';
+
+  @override
+  String get cashMoveMoneyAmount => 'Amount';
+
+  @override
+  String get cashMoveMoneyComment => 'Comment';
+
+  @override
+  String get cashMoveMoneySave => 'Save';
+
+  @override
+  String get cashMoveMoneyEnterAmount => 'Enter amount';
+
+  @override
+  String get cashMoveMoneyFailed => 'Cash operation failed';
+
+  @override
+  String get cashMoveMoneyPresetWithdraw => 'cash withdrawal';
 
   @override
   String get history => 'History';
@@ -205,6 +244,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyModeDoneParking => 'Done / parking';
 
   @override
+  String get historyColRow => '#';
+
+  @override
   String get historyColCar => 'Car';
 
   @override
@@ -217,13 +259,61 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyColStatus => 'Status';
 
   @override
+  String get historyColAmount => 'Amount';
+
+  @override
+  String get historyGoodsTotal => 'Total';
+
+  @override
+  String get historyReportColOpened => 'Opened';
+
+  @override
+  String historyReportOrdersCount(int count) {
+    return 'Orders: $count';
+  }
+
+  @override
+  String historyRowsInTable(int count) {
+    return 'Rows: $count';
+  }
+
+  @override
+  String get historyNoReportData => 'No report data';
+
+  @override
+  String historyWaitingCars(int count) {
+    return 'Waiting: $count';
+  }
+
+  @override
   String get historyStatusDone => 'Done';
+
+  @override
+  String get historyStatusWash => 'Wash';
+
+  @override
+  String get historyStatusDry => 'Drying';
 
   @override
   String get historyStatusParking => 'Parking';
 
   @override
   String get historyNoGoodsRows => 'No done or parking rows';
+
+  @override
+  String get historyGoodsFilterAll => 'All';
+
+  @override
+  String get historyGoodsFilterUnpaid => 'Unpaid';
+
+  @override
+  String get historyGoodsFilterNoRows => 'No rows match this filter';
+
+  @override
+  String get historyGoodsSearchCarHint => 'Search by car number';
+
+  @override
+  String get historyGoodsCarSearchNoMatch => 'No cars match this search';
 
   @override
   String get historyPay => 'Pay';

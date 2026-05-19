@@ -58,18 +58,67 @@
   "finish": "Finish",
   "options": "Options",
   "process": "Process",
-  "cashdesk": "Cashdesk",
+  "cashdesk": "Orders by shift",
+  "cashReports": "Cash reports",
+  "cashRemainsTitle": "Cash remains (last 30 shifts)",
+  "cashRemainsNoData": "No data for closed shifts",
+  "cashdeskCloseQuestion": "Close active cash session?",
+  "cashMoveMoneyTitle": "Cash in/out",
+  "cashMoveMoneyInput": "In",
+  "cashMoveMoneyOutput": "Out",
+  "cashMoveMoneyAmount": "Amount",
+  "cashMoveMoneyComment": "Comment",
+  "cashMoveMoneySave": "Save",
+  "cashMoveMoneyEnterAmount": "Enter amount",
+  "cashMoveMoneyFailed": "Cash operation failed",
+  "cashMoveMoneyPresetWithdraw": "cash withdrawal",
   "history": "History",
   "currentOrders": "Current orders",
   "historyModeReport": "Session report",
   "historyModeDoneParking": "Done / parking",
+  "historyColRow": "#",
   "historyColCar": "Car",
   "historyColService": "Service",
   "historyColDaily": "No.",
   "historyColStatus": "Status",
+  "historyColAmount": "Amount",
+  "historyGoodsTotal": "Total",
+  "historyReportColOpened": "Opened",
+  "historyReportOrdersCount": "Orders: {count}",
+  "@historyReportOrdersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyRowsInTable": "Rows: {count}",
+  "@historyRowsInTable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyNoReportData": "No report data",
+  "historyWaitingCars": "Waiting: {count}",
+  "@historyWaitingCars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "historyStatusDone": "Done",
+  "historyStatusWash": "Wash",
+  "historyStatusDry": "Drying",
   "historyStatusParking": "Parking",
   "historyNoGoodsRows": "No done or parking rows",
+  "historyGoodsFilterAll": "All",
+  "historyGoodsFilterUnpaid": "Unpaid",
+  "historyGoodsFilterNoRows": "No rows match this filter",
+  "historyGoodsSearchCarHint": "Search by car number",
+  "historyGoodsCarSearchNoMatch": "No cars match this search",
   "historyPay": "Pay",
   "historyPayTitle": "Payment",
   "historyPayGetOrderFailed": "Could not load order from server",

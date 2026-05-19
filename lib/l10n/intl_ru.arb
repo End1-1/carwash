@@ -58,18 +58,67 @@
   "finish": "Готово",
   "options": "Настройки",
   "process": "Процесс",
-  "cashdesk": "Касса",
+  "cashdesk": "Заказы по сменам",
+  "cashReports": "Отчеты кассы",
+  "cashRemainsTitle": "Остатки кассы (30 смен)",
+  "cashRemainsNoData": "Нет данных по закрытым сменам",
+  "cashdeskCloseQuestion": "Закрыть активную смену кассы?",
+  "cashMoveMoneyTitle": "Ввод/вывод средств",
+  "cashMoveMoneyInput": "Ввод",
+  "cashMoveMoneyOutput": "Вывод",
+  "cashMoveMoneyAmount": "Сумма",
+  "cashMoveMoneyComment": "Комментарий",
+  "cashMoveMoneySave": "Сохранить",
+  "cashMoveMoneyEnterAmount": "Введите сумму",
+  "cashMoveMoneyFailed": "Ошибка операции по кассе",
+  "cashMoveMoneyPresetWithdraw": "изъятие средств",
   "history": "История",
   "currentOrders": "Текущие заказы",
   "historyModeReport": "Отчёт смены",
   "historyModeDoneParking": "Готово / парковка",
+  "historyColRow": "Стр.",
   "historyColCar": "Авто",
   "historyColService": "Услуга",
   "historyColDaily": "№",
   "historyColStatus": "Статус",
+  "historyColAmount": "Сумма",
+  "historyGoodsTotal": "Итого",
+  "historyReportColOpened": "Принят",
+  "historyReportOrdersCount": "Заказов: {count}",
+  "@historyReportOrdersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyRowsInTable": "Строк: {count}",
+  "@historyRowsInTable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyNoReportData": "Нет данных отчёта",
+  "historyWaitingCars": "В ожидании: {count}",
+  "@historyWaitingCars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "historyStatusDone": "Выполнено",
+  "historyStatusWash": "Мойка",
+  "historyStatusDry": "Сушка",
   "historyStatusParking": "Парковка",
   "historyNoGoodsRows": "Нет строк «выполнено» или «парковка»",
+  "historyGoodsFilterAll": "Все",
+  "historyGoodsFilterUnpaid": "Неоплачено",
+  "historyGoodsFilterNoRows": "Нет строк по фильтру",
+  "historyGoodsSearchCarHint": "Поиск по номеру авто",
+  "historyGoodsCarSearchNoMatch": "Нет авто по этому запросу",
   "historyPay": "Оплатить",
   "historyPayTitle": "Оплата",
   "historyPayGetOrderFailed": "Не удалось загрузить заказ с сервера",

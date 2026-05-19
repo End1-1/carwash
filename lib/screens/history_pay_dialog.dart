@@ -51,6 +51,21 @@ class _HistoryPayDialogBodyState extends State<HistoryPayDialogBody> {
           widget.model,
           showComplimentary: false,
           carNumberDisplay: widget.model.carPlateFromOrderMap(o),
+          trailingAfterAmount: StreamBuilder<Object?>(
+            stream: widget.model.fiscalController.stream,
+            builder: (context, _) {
+              return InkWell(
+                onTap: widget.model.togglePrintFiscalOnly,
+                child: Image.asset(
+                  widget.model.printFiscal
+                      ? 'assets/icons/basketball.png'
+                      : 'assets/icons/football.png',
+                  height: 36,
+                  fit: BoxFit.contain,
+                ),
+              );
+            },
+          ),
         ),
         const SizedBox(height: 12),
         // Нельзя [globalOutlinedButton]: внутри SizedBox.expand — ломается при h=∞ у диалога.
