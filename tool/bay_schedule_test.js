@@ -114,4 +114,71 @@ assert.strictEqual(byId(state, "c").status, 3);
 var parked = advance([a], t1100 + 60000);
 assert.strictEqual(sched.onSchedule(byId(parked, "a")), false);
 
+var off = sched.resolveDurations(null);
+assert.strictEqual(off.enabled, 0);
+assert.strictEqual(off.washMs, sched.WASH_MS);
+assert.strictEqual(off.parkEndMs, sched.PARK_END_MS);
+var offExplicit = sched.resolveDurations({ enabled: 0, coeff: 60 });
+assert.strictEqual(offExplicit.washMs, 60 * 60 * 1000);
+assert.strictEqual(offExplicit.parkEndMs, 120 * 60 * 1000);
+
+var scale = { enabled: 1, coeff: 60 };
+var scaled = sched.resolveDurations(scale);
+assert.strictEqual(scaled.washMs, 60 * 1000);
+assert.strictEqual(scaled.parkEndMs, 120 * 1000);
+
+function advanceScaled(cars, now) {
+  return sched.advanceBaySchedule(cars, now, scale);
+}
+
+var s0 = at(9, 0);
+var s1 = at(9, 1);
+var s2 = at(9, 2);
+var sa = car("a", s0);
+var sb = car("b", s0);
+var sc = car("c", s0);
+var sd = car("d", s0);
+var scaledState = advanceScaled([sa, sb, sc, sd], s0);
+assert.strictEqual(byId(scaledState, "a").status, 2);
+assert.strictEqual(byId(scaledState, "a").bay, 1);
+assert.strictEqual(byId(scaledState, "a").entryMs, s0);
+assert.strictEqual(byId(scaledState, "b").bay, 2);
+assert.strictEqual(byId(scaledState, "b").entryMs, s0);
+assert.strictEqual(byId(scaledState, "c").bay, 3);
+assert.strictEqual(byId(scaledState, "c").entryMs, s0);
+assert.strictEqual(byId(scaledState, "d").status, 1);
+assert.strictEqual(byId(scaledState, "d").bay, 0);
+assert.strictEqual(byId(scaledState, "d").entryMs, null);
+
+var stillWashing = advance([byId(scaledState, "a")], s1);
+assert.strictEqual(byId(stillWashing, "a").status, 2);
+assert.strictEqual(byId(stillWashing, "a").entryMs, s0);
+
+scaledState = advanceScaled(scaledState, s1);
+sa = byId(scaledState, "a");
+sd = byId(scaledState, "d");
+assert.strictEqual(sa.status, 3);
+assert.strictEqual(sa.substatus, 4);
+assert.strictEqual(sa.bay, 0);
+assert.strictEqual(sa.entryMs, s0);
+assert.strictEqual(sd.status, 2);
+assert.strictEqual(sd.bay, 1);
+assert.strictEqual(sd.entryMs, s1);
+assert.strictEqual(byId(scaledState, "b").status, 3);
+assert.strictEqual(byId(scaledState, "c").status, 3);
+
+scaledState = advanceScaled(scaledState, s2);
+assert.strictEqual(byId(scaledState, "a").status, 4);
+assert.strictEqual(byId(scaledState, "a").substatus, 5);
+assert.strictEqual(byId(scaledState, "a").paid, true);
+assert.strictEqual(byId(scaledState, "a").entryMs, s0);
+assert.strictEqual(byId(scaledState, "d").status, 3);
+assert.strictEqual(byId(scaledState, "d").entryMs, s1);
+
+var zeroCoeff = sched.resolveDurations({ enabled: 1, coeff: 0 });
+assert.strictEqual(zeroCoeff.coeff, 60);
+assert.strictEqual(zeroCoeff.washMs, 60 * 1000);
+assert.strictEqual(sched.minutesLeft(scaled.washMs), 1);
+assert.strictEqual(sched.minutesLeft(scaled.parkEndMs), 2);
+
 console.log("bay schedule walkthrough ok");

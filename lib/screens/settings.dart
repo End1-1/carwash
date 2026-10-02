@@ -1,5 +1,6 @@
 import 'package:carwash/screens/app/screen.dart';
 import 'package:carwash/utils/prefs.dart';
+import 'package:carwash/widgets/settings_bay_test_time.dart';
 import 'package:carwash/widgets/settings_use_ssl.dart';
 import 'package:carwash/widgets/text_form_field.dart';
 import 'package:flutter/material.dart';
@@ -99,6 +100,8 @@ class SettingsScreen extends AppScreen {
                       model.locale().afterBasketNavigateToOrders),
           ),
         ]),
+        const SizedBox(height: 10),
+        SettingsBayTestTime(model: model),
       ],
     ));
   }

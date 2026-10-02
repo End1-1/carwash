@@ -118,6 +118,16 @@ class AppModel {
   static const Duration _duplicateCheckoutWindow = Duration(seconds: 20);
   /// `YES` or `NO`, persisted as prefs key `usessl`.
   String settingsUseSsl = 'YES';
+  /// Staff test clock. Off keeps the 60-minute wash and the 120-minute free-parking end.
+  bool settingsBayTestTimeScale = false;
+  final bayTestTimeCoeffController = TextEditingController(text: '60');
+  static const String prefKeyBayTestTimeScale = 'baytesttimescale';
+  static const String prefKeyBayTestTimeCoeff = 'baytesttimecoeff';
+  static const String prefKeyBayTestTimePending = 'baytesttimescale_pending';
+  static const String bayTestTimeScaleGetRoute =
+      '/engine/v2/carwash/goods-in-progress/get-bay-time-scale';
+  static const String bayTestTimeScaleSetRoute =
+      '/engine/v2/carwash/goods-in-progress/set-bay-time-scale';
 
   /// Ответ `get-config`: слитый JSON `f_config` (после логина).
   Map<String, dynamic>? workstationConfig;
@@ -339,6 +349,7 @@ class AppModel {
     if (loginResult['status'] == 1) {
       login = true;
       prefs.setInt('user_group', loginResult['userdata']['f_group']);
+      await _pushBayTestTimeScaleIfPending();
     //  prefs.setInt('cashsession', loginResult['data']['cashsession']['f_id']);
 
       final wsErr = await fetchWorkstationConfig();
@@ -375,6 +386,7 @@ class AppModel {
       login = true;
       prefs.setString('token', result['token']);
       prefs.setInt('user_group', result['userdata']['f_group']);
+      await _pushBayTestTimeScaleIfPending();
      // prefs.setInt('cashsession', result['cashsession']);
       final wsErr = await fetchWorkstationConfig();
       if (wsErr != null) {
@@ -503,8 +515,12 @@ class AppModel {
         orderApiController.text = prefs.string(prefKeyOrderApiRoute);
         settingsUseSsl =
             prefs.string('usessl').toUpperCase() == 'NO' ? 'NO' : 'YES';
-        Navigator.push(Prefs.navigatorKey.currentContext!,
-            MaterialPageRoute(builder: (builder) => SettingsScreen(this)));
+        _loadBayTestTimeScaleIntoForm().then((_) {
+          final ctx = Prefs.navigatorKey.currentContext;
+          if (ctx == null) return;
+          Navigator.push(ctx,
+              MaterialPageRoute(builder: (builder) => SettingsScreen(this)));
+        });
       }
     });
   }
@@ -600,6 +616,55 @@ class AppModel {
         MaterialPageRoute(builder: (builder) => StatusScreen(this)));
   }
 
+  static int normalizedBayTestCoeff(String raw) {
+    final n = int.tryParse(raw.trim());
+    if (n == null || n < 1) return 60;
+    if (n > 1000000) return 1000000;
+    return n;
+  }
+
+  bool _bayTimeEnabled(dynamic value) {
+    return value == 1 || value == true || value == '1';
+  }
+
+  Future<void> _loadBayTestTimeScaleIntoForm() async {
+    settingsBayTestTimeScale = prefs.string(prefKeyBayTestTimeScale) == '1';
+    final storedCoeff = prefs.string(prefKeyBayTestTimeCoeff);
+    bayTestTimeCoeffController.text = storedCoeff.isEmpty
+        ? '60'
+        : '${normalizedBayTestCoeff(storedCoeff)}';
+    if (prefs.string('token').isEmpty) return;
+    final r = await WebHttpQuery(bayTestTimeScaleGetRoute).request({});
+    if (r['status'] != 1) return;
+    final bay = r['bay_time'];
+    if (bay is! Map) return;
+    settingsBayTestTimeScale = _bayTimeEnabled(bay['enabled']);
+    final coeff = normalizedBayTestCoeff('${bay['coeff'] ?? ''}');
+    bayTestTimeCoeffController.text = '$coeff';
+    prefs.setString(
+        prefKeyBayTestTimeScale, settingsBayTestTimeScale ? '1' : '0');
+    prefs.setString(prefKeyBayTestTimeCoeff, '$coeff');
+  }
+
+  Future<void> _pushBayTestTimeScaleIfPending() async {
+    if (prefs.string(prefKeyBayTestTimePending) != '1') return;
+    if (prefs.string('token').isEmpty) return;
+    final enabled = prefs.string(prefKeyBayTestTimeScale) == '1' ? 1 : 0;
+    final coeff = normalizedBayTestCoeff(prefs.string(prefKeyBayTestTimeCoeff));
+    final r = await WebHttpQuery(bayTestTimeScaleSetRoute).request({
+      'enabled': enabled,
+      'coeff': coeff,
+    });
+    if (r['status'] == 1) {
+      prefs.setString(prefKeyBayTestTimePending, '0');
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Prefs.navigatorKey.currentContext == null) return;
+      dialogController.add(locale().testTimeScaleSaveFailed);
+    });
+  }
+
   void saveSettings() {
     prefs.setString('websocket', settingsServerAddressController.text);
     prefs.setString(
@@ -613,6 +678,12 @@ class AppModel {
     prefs.setString('afterbaskettoorders', afterBasketToOrdersController.text);
     prefs.setString(prefKeyOrderApiRoute, orderApiController.text);
     prefs.setString('usessl', settingsUseSsl);
+    final coeff = normalizedBayTestCoeff(bayTestTimeCoeffController.text);
+    bayTestTimeCoeffController.text = '$coeff';
+    prefs.setString(
+        prefKeyBayTestTimeScale, settingsBayTestTimeScale ? '1' : '0');
+    prefs.setString(prefKeyBayTestTimeCoeff, '$coeff');
+    prefs.setString(prefKeyBayTestTimePending, '1');
     initModel().then((value) {
       if (!login) {
         navLogin();

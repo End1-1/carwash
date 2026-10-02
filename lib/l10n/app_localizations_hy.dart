@@ -98,6 +98,20 @@ class AppLocalizationsHy extends AppLocalizations {
   String get useSsl => 'Օգտագործել SSL';
 
   @override
+  String get testTimeScale => 'Թեստային ժամանակի մասշտաբ';
+
+  @override
+  String get testTimeScaleHint =>
+      'Միացված ժամանակ գործակիցը բաժանում է 60 րոպե լվացումը և անվճար պարկինգի ավարտը՝ բոքս մտնելուց 120 րոպե հետո։';
+
+  @override
+  String get testTimeCoefficient => 'Թեստային ժամանակի գործակից';
+
+  @override
+  String get testTimeScaleSaveFailed =>
+      'Չհաջողվեց պահել թեստային ժամանակի մասշտաբը';
+
+  @override
   String get amount => 'Գումար';
 
   @override
