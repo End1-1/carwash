@@ -1,11 +1,19 @@
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/utils/global.dart';
+import 'package:carwash/utils/prefs.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'dish_qty.dart';
 
 part 'dish_basket.part.dart';
+
+int _cookingMinutes(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.round();
+  return int.tryParse(v.toString()) ?? 0;
+}
 
 String _timeWindowText(Map<String, dynamic> data) {
   final s = '${data['f_cooking_start'] ?? ''}'.trim();
@@ -67,6 +75,43 @@ class DishBasket extends StatelessWidget {
             const SizedBox(
               height: 10,
             ),
+          BlocBuilder<CookingTimeBlok, CookingTimeState>(
+              builder: (builder, state) {
+            if (data['f_cooking_time'] > 0) {
+              return Row(children: [
+                IconButton(
+                    onPressed: locked ? null : () {
+                      var n = _cookingMinutes(data['f_cooking_time']) - 10;
+                      if (n < 10) n = 10;
+                      data['f_cooking_time'] = n;
+                      BlocProvider.of<CookingTimeBlok>(prefs.context())
+                          .add(CookingTimeUpdate());
+                      model.refreshBasketOrderWindowFromServer();
+                    },
+                    icon: const Icon(Icons.remove_circle_outline,
+                        color: Colors.white)),
+                Expanded(
+                  child: Text(
+                    '${model.locale().duration}  ${durationToString(data['f_cooking_time'], model.locale().hour, model.locale().minutesShort)}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  onPressed: locked ? null : () {
+                    final n = _cookingMinutes(data['f_cooking_time']);
+                    data['f_cooking_time'] = n + 10;
+                    BlocProvider.of<CookingTimeBlok>(prefs.context())
+                        .add(CookingTimeUpdate());
+                    model.refreshBasketOrderWindowFromServer();
+                  },
+                  icon: const Icon(Icons.add_circle_outline_outlined,
+                      color: Colors.white),
+                ),
+              ]);
+            }
+            return Container();
+          }),
           const SizedBox(
             height: 10,
           ),
