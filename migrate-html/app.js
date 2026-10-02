@@ -10,7 +10,7 @@
   // Source for TV process board (new API).
   var API_URL =
     getQueryParam("api") || "/engine/v2/carwash/goods-in-progress/get";
-  var REFRESH_MS = 1000;
+  var REFRESH_MS = 20000;
   /** Мигание (3/4): время через ogpStatusSubTime(..., 3, 4) — см. комментарий у ogpStatusSubTime */
   var DONE34_BLINK_AFTER_MINUTES = 40;
   var REQUEST_TIMEOUT_MS = 7000;
