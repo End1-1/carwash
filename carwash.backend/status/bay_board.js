@@ -1,6 +1,6 @@
 /**
  * Staff board: three bay columns, free parking, and the arrival queue.
- * Status changes come from the server timer (goods-in-progress get), not a tap.
+ * Status changes come from the server when the board polls, about every 20 seconds, not from a tap.
  */
 (function () {
   var sched = window.carwashBaySchedule;
@@ -280,7 +280,7 @@
   function render(rows) {
     lastRows = rows || [];
     paint();
-    if (timer == null) timer = setInterval(paint, 1000);
+    if (timer == null) timer = setInterval(paint, 20000);
   }
 
   window.carwashBayBoard = { render: render, paint: paint };
