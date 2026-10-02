@@ -100,7 +100,10 @@ class Data {
     return dry[index];
   }
 
-  int get washBoxCount => tables.isEmpty ? 2 : tables.length;
+  static const int bayCount = 3;
+  static const int washOccupyMinutes = 60;
+
+  int get washBoxCount => bayCount;
 
   int get dryBoxCount => dry.length;
 
@@ -132,39 +135,48 @@ class Data {
   }
 
   void countWorksStartEnd() {
-    final last = <int, DateTime>{1: DateTime.now(), 2: DateTime.now()};
+    final now = DateTime.now();
+    final bayFreeAt = <int, DateTime>{
+      for (var b = 1; b <= bayCount; b++) b: now,
+    };
 
     for (final e in works) {
-      if (e['progress'] == 1) {
-        continue;
-      }
-      if (e['progress'] > 1 && e['progress'] < 4) {
-        last[e['f_table']] =
-            strToDateTime(e['f_washdate']).add(Duration(minutes: e['f_washtime'] + e['f_drytime']));
-        e['f_begin'] = strToDateTime(e['f_washdate']);
-        e['f_done'] = last[e['f_table']];
+      final progress = int.tryParse('${e['progress']}') ?? 0;
+      if (progress != 2 && progress != 3) continue;
+      final bay = int.tryParse('${e['f_table']}') ?? 0;
+      if (bay < 1 || bay > bayCount) continue;
+      final begin = strToDateTime(e['f_washdate']);
+      final freeAt = begin.add(const Duration(minutes: washOccupyMinutes));
+      e['f_begin'] = begin;
+      e['f_done'] = freeAt;
+      if (freeAt.isAfter(bayFreeAt[bay]!)) {
+        bayFreeAt[bay] = freeAt;
       }
     }
 
     for (final e in works) {
-      if (e['progress'] != 1) {
-        continue;
-      }
-      final a = last.keys;
-      DateTime lastMin = last[1]!;
-      int lastKey = 1;
-
-      for (final i in a) {
-        if (lastMin.isAfter(last[i]!)) {
-          lastMin = last[i]!;
-          lastKey = i;
+      final progress = int.tryParse('${e['progress']}') ?? 0;
+      if (progress != 1) continue;
+      var bestBay = 1;
+      var bestAt = bayFreeAt[1]!;
+      for (var b = 2; b <= bayCount; b++) {
+        final at = bayFreeAt[b]!;
+        if (at.isBefore(bestAt)) {
+          bestAt = at;
+          bestBay = b;
         }
       }
-      e['f_table'] = lastKey;
-      e['f_tablename'] = 'BOX $lastKey';
-      e['f_begin'] = lastMin;
-      e['f_done'] = lastMin.add(Duration(minutes: e['f_washtime'] + e['f_drytime']));
-      last[lastKey] = lastMin.add(Duration(minutes: e['f_washtime'] + e['f_drytime']));
+      if (bestAt.isAfter(now)) {
+        e['f_table'] = 0;
+        e['f_tablename'] = '';
+        continue;
+      }
+      final start = bestAt.isBefore(now) ? now : bestAt;
+      e['f_table'] = bestBay;
+      e['f_tablename'] = 'BOX $bestBay';
+      e['f_begin'] = start;
+      e['f_done'] = start.add(const Duration(minutes: washOccupyMinutes));
+      bayFreeAt[bestBay] = e['f_done'] as DateTime;
     }
   }
 }

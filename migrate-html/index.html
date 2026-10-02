@@ -47,22 +47,24 @@
   </header>
   <div id="status-line" class="status-line" data-i18n="init_status">սկզբնավորում…</div>
 
-  <main class="layout">
-    <section class="card">
-      <div class="card-head">
-        <h2 data-i18n="col_active">Աշխատանքում</h2>
-        <img src="./assets/icons/fan.png" alt="" class="card-icon">
-      </div>
-      <div id="active-list" class="list" aria-live="polite"></div>
-    </section>
-
-    <section class="card">
-      <div class="card-head">
-        <h2 data-i18n="col_pending">Սպասում են</h2>
-        <img src="./assets/icons/parking.png" alt="" class="card-icon">
-      </div>
-      <div id="queued-list" class="list" aria-live="polite"></div>
-    </section>
+  <main class="bay-board" id="bay-board">
+    <div class="bay-columns" id="bay-columns"></div>
+    <div class="bay-lists">
+      <section class="card bay-card bay-card--free">
+        <div class="card-head">
+          <h2 data-i18n="col_free_parking">Անվճար պարկինգ</h2>
+          <img src="./assets/icons/parking.png" alt="" class="card-icon">
+        </div>
+        <div id="free-parking-list" class="list" aria-live="polite"></div>
+      </section>
+      <section class="card bay-card bay-card--queue">
+        <div class="card-head">
+          <h2 data-i18n="col_pending">Սպասում են</h2>
+          <img src="./assets/icons/timer.png" alt="" class="card-icon">
+        </div>
+        <div id="queue-list" class="list" aria-live="polite"></div>
+      </section>
+    </div>
   </main>
 
   <div id="overlay" class="overlay" style="display: none" aria-hidden="true">
@@ -201,7 +203,9 @@
     </div>
   </div>
 
-  <script src="./i18n.js?v=20260411b"></script>
-  <script src="./app.js?v=20260921g"></script>
+  <script src="./i18n.js?v=20261002a"></script>
+  <script src="./bay_schedule.js?v=20261002a"></script>
+  <script src="./bay_board.js?v=20261002a"></script>
+  <script src="./app.js?v=20261002a"></script>
 </body>
 </html>

@@ -607,8 +607,8 @@ extension HistoryE on HistoryScreen {
     if (st == 1 && ss == 1) return l10n.pending;
     if (st == 2 && ss == 2) return l10n.historyStatusWash;
     if (st == 2 && ss == 3) return l10n.historyStatusDry;
-    if (st == 3 && ss == 4) return l10n.historyStatusDone;
-    if (st == 3 && ss == 5) return l10n.historyStatusParking;
+    if (st == 3 && ss == 4) return l10n.historyStatusFreeParking;
+    if (st == 3 && ss == 5) return l10n.historyStatusPaidParking;
     if (st != null && ss != null) return '$st/$ss';
     if (st != null) return '$st';
     return '—';

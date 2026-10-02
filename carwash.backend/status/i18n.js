@@ -109,7 +109,11 @@
       time_parking_prefix: "до паркинга: ",
       time_elapsed_dh: "{d}д {h}ч",
       time_elapsed_hm: "{h}ч {m}мин",
-      time_elapsed_m: "{m} мин"
+      time_elapsed_m: "{m} мин",
+      bay_title: "Пост {n}",
+      bay_empty: "Свободно",
+      col_free_parking: "Бесплатная парковка",
+      btn_paid_parking: "Платная парковка"
     },
     en: {
       app_title: "Carwash Status",
@@ -185,7 +189,11 @@
       time_parking_prefix: "To parking: ",
       time_elapsed_dh: "{d}d {h}h",
       time_elapsed_hm: "{h}h {m}m",
-      time_elapsed_m: "{m} min"
+      time_elapsed_m: "{m} min",
+      bay_title: "Bay {n}",
+      bay_empty: "Empty",
+      col_free_parking: "Free parking",
+      btn_paid_parking: "Paid parking"
     },
     hy: {
       app_title: "Carwash Status",
@@ -261,7 +269,11 @@
       time_parking_prefix: "Մինչև կայանը․ ",
       time_elapsed_dh: "{d}օ {h}ժ",
       time_elapsed_hm: "{h}ժ {m}ր",
-      time_elapsed_m: "{m} ր"
+      time_elapsed_m: "{m} ր",
+      bay_title: "Կայան {n}",
+      bay_empty: "Ազատ",
+      col_free_parking: "Անվճար պարկինգ",
+      btn_paid_parking: "Վճարովի պարկինգ"
     }
   };
 

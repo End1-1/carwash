@@ -254,7 +254,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get historyModeReport => 'Отчёт смены';
 
   @override
-  String get historyModeDoneParking => 'Готово / парковка';
+  String get historyModeDoneParking => 'Бесплатная / платная парковка';
 
   @override
   String get historyColRow => 'Стр.';
@@ -309,6 +309,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get historyStatusParking => 'Парковка';
+
+  @override
+  String get historyStatusFreeParking => 'Бесплатная парковка';
+
+  @override
+  String get historyStatusPaidParking => 'Платная парковка';
 
   @override
   String get historyNoGoodsRows => 'Нет строк «выполнено» или «парковка»';

@@ -583,7 +583,7 @@ abstract class AppLocalizations {
   /// No description provided for @historyModeDoneParking.
   ///
   /// In en, this message translates to:
-  /// **'Done / parking'**
+  /// **'Free / paid parking'**
   String get historyModeDoneParking;
 
   /// No description provided for @historyColRow.
@@ -681,6 +681,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Parking'**
   String get historyStatusParking;
+
+  /// No description provided for @historyStatusFreeParking.
+  ///
+  /// In en, this message translates to:
+  /// **'Free parking'**
+  String get historyStatusFreeParking;
+
+  /// No description provided for @historyStatusPaidParking.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid parking'**
+  String get historyStatusPaidParking;
 
   /// No description provided for @historyNoGoodsRows.
   ///

@@ -884,3 +884,125 @@ body.app-authed .btn-logout-header {
     white-space: normal;
   }
 }
+
+
+/* Staff bay schedule: three wash bays, free parking, queue. */
+.bay-board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.bay-columns {
+  flex: 1.35;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.bay-lists {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.bay-card {
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bay-card--wash {
+  background: var(--flutter-blue);
+}
+
+.bay-card--free {
+  background: var(--flutter-green);
+}
+
+.bay-card--queue {
+  background: var(--flutter-orange);
+}
+
+.bay-card .card-head {
+  padding: 10px 12px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+  color: var(--flutter-white);
+}
+
+.bay-card--wash .card-head {
+  background: linear-gradient(to bottom, var(--flutter-blue-accent), var(--flutter-blue));
+}
+
+.bay-card--free .card-head {
+  background: #2e7d32;
+}
+
+.bay-card--queue .card-head {
+  background: linear-gradient(to bottom, var(--flutter-deep-orange), var(--flutter-orange));
+}
+
+.bay-card .card-head h2 {
+  color: var(--flutter-white);
+  font-size: 22px;
+}
+
+.bay-card .list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+.bay-car {
+  background: var(--flutter-tile-active);
+  color: var(--flutter-black);
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.bay-car-plate {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.bay-car-service {
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.bay-car-time {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.bay-empty {
+  color: var(--flutter-white);
+  font-size: 20px;
+  font-weight: 700;
+  opacity: 0.9;
+  padding: 12px 4px;
+}
+
+@media (max-width: 900px) {
+  .bay-card .card-head h2 {
+    font-size: 16px;
+  }
+  .bay-car-plate {
+    font-size: 16px;
+  }
+  .bay-car-time {
+    font-size: 14px;
+  }
+}

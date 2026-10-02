@@ -198,6 +198,8 @@ class Order extends Auth
         $ogp = ["f_status_1_1_time" => date("Y-m-d H:i:s"), "f_cooking_start" => $params->f_data?->f_cooking_start ?? date("1981-09-05 00:01:00"), "f_cooking_end" =>   $params->f_data?->f_cooking_end ?? date("Y-M-d H:i:s"), "f_substatus" => 1];
         $cd["f_data"] = json_encode($ogp, JSON_UNESCAPED_UNICODE);
         $this->insert("o_goods_process", $cd);
+        require_once __DIR__ . "/../carwash/bay_schedule.php";
+        carwash_bay_schedule_apply($this);
         $this->CountAmounts($oheader["f_id"],  $this->LogRecord("add dish", ["comment" => $params->dish_name . " (" . $params->qty . ") "]));
         $this->result["order"] = $this->GetOrder($oheader["f_id"]);
         $this->echoResult();

@@ -10,7 +10,7 @@
   // Source for TV process board (new API).
   var API_URL =
     getQueryParam("api") || "/engine/v2/carwash/goods-in-progress/get";
-  var REFRESH_MS = 8000;
+  var REFRESH_MS = 1000;
   /** Мигание (3/4): время через ogpStatusSubTime(..., 3, 4) — см. комментарий у ogpStatusSubTime */
   var DONE34_BLINK_AFTER_MINUTES = 40;
   var REQUEST_TIMEOUT_MS = 7000;
@@ -40,13 +40,7 @@
   /** Narrow screens: no polling (see start()). Override: ?autorefresh=1|0 */
   function wantsAutoRefresh() {
     var o = getQueryParam("autorefresh");
-    if (o === "1" || o === "true") return true;
     if (o === "0" || o === "false") return false;
-    try {
-      if (window.matchMedia && window.matchMedia("(max-width: 767px)").matches) return false;
-    } catch (e) {
-      // ignore
-    }
     return true;
   }
 
@@ -616,8 +610,8 @@
     if (s === 1 && u === 1) return tr("col_pending");
     if (s === 2 && u === 2) return tr("btn_wash");
     if (s === 2 && u === 3) return tr("btn_dry");
-    if (s === 3 && u === 4) return tr("btn_done");
-    if (s === 3 && u === 5) return tr("btn_parking");
+    if (s === 3 && u === 4) return tr("col_free_parking");
+    if (s === 3 && u === 5) return tr("btn_paid_parking");
     if (s === 4 && u === 6) return tr("btn_deliver");
     if (s === 4 && u === 1) return tr("status_archive_row");
     return String(status) + "/" + String(substatus);
@@ -1243,6 +1237,7 @@
   }
 
   function setEmptyState(container) {
+    if (!container) return;
     container.textContent = "";
     var empty = document.createElement("div");
     empty.className = "empty";
@@ -1356,6 +1351,7 @@
   }
 
   function updateColumn(container, cache, order, items, isQueued) {
+    if (!container) return;
     logDebug("column.update.start", {
       column: isQueued ? "pending" : "inProgress",
       incoming: items.length,
@@ -2481,6 +2477,9 @@
           } catch (e) {
             // ignore
           }
+        }
+        if (window.carwashBayBoard && window.carwashBayBoard.render) {
+          window.carwashBayBoard.render(cleaned);
         }
         updateColumn(activeListEl, activeCache, activeOrder, inProgDisplay, false);
         updateColumn(queuedListEl, queuedCache, queuedOrder, pendingDisplay, true);
