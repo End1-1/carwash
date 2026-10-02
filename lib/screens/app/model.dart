@@ -9,6 +9,7 @@ import 'package:carwash/screens/cash_remains.dart';
 import 'package:carwash/screens/cash_reports.dart';
 import 'package:carwash/screens/cashsession.dart';
 import 'package:carwash/screens/dishes.dart';
+import 'package:carwash/screens/site_preorders.dart';
 import 'package:carwash/screens/help/screen_help.dart';
 import 'package:carwash/screens/history.dart' deferred as hist hide HistoryE;
 import 'package:carwash/screens/login.dart';
@@ -536,6 +537,15 @@ class AppModel {
     );
   }
 
+  void navSitePreorders() {
+    final ctx = Prefs.navigatorKey.currentContext;
+    if (ctx == null) return;
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(builder: (builder) => SitePreordersScreen(this)),
+    );
+  }
+
   Future<void> _navCashReportsPushAsync() async {
     final ctx = Prefs.navigatorKey.currentContext;
     if (ctx == null) return;
@@ -830,6 +840,171 @@ class AppModel {
     if (v == null) return 0;
     if (v is num) return v.round();
     return int.tryParse(v.toString()) ?? 0;
+  }
+
+  Map<String, dynamic>? _menuDishById(dynamic dishId) {
+    final id = idVal(dishId);
+    if (id == null) return null;
+    for (final d in appdata.dish) {
+      if (idEq(d['f_dish'], id)) return d;
+    }
+    return null;
+  }
+
+  void _applyCookingWindowToItems(List<Map<String, dynamic>> items) {
+    var maxCook = 0;
+    for (final e in items) {
+      final m = _basketCookingMinutes(e);
+      if (m > maxCook) maxCook = m;
+    }
+    if (maxCook <= 0) return;
+    final now = DateTime.now();
+    final end = now.add(Duration(minutes: maxCook));
+    final startStr = dateTimeToStr(now);
+    final endStr = dateTimeToStr(end);
+    for (final e in items) {
+      e['f_cooking_start'] = startStr;
+      e['f_cooking_end'] = endStr;
+    }
+  }
+
+  String _sitePreorderCarLabel(Map<String, dynamic> preorder) {
+    final car = preorder['car'];
+    if (car is Map) {
+      final m = Map<String, dynamic>.from(car);
+      if (m['custom'] == true) {
+        final text = '${m['custom_text'] ?? ''}'.trim();
+        final type = '${m['type_name'] ?? ''}'.trim();
+        if (text.isNotEmpty && type.isNotEmpty) return '$text ($type)';
+        if (text.isNotEmpty) return text;
+      }
+      final brand = m['brand'];
+      final model = m['model'];
+      if (brand is Map && model is Map) {
+        return '${brand['f_name'] ?? ''} ${model['f_name'] ?? ''}'.trim();
+      }
+    }
+    final ct = preorder['car_type'];
+    if (ct is Map) {
+      return '${ct['f_name'] ?? ''}'.trim();
+    }
+    return '';
+  }
+
+  String _sitePreorderComment(Map<String, dynamic> preorder) {
+    final parts = <String>[];
+    final car = _sitePreorderCarLabel(preorder);
+    final phone = '${preorder['customer_phone'] ?? ''}'.trim();
+    final name = '${preorder['customer_name'] ?? ''}'.trim();
+    if (car.isNotEmpty) parts.add(car);
+    if (phone.isNotEmpty) parts.add(phone);
+    if (name.isNotEmpty) parts.add(name);
+    return parts.join(', ');
+  }
+
+  List<Map<String, dynamic>> _sitePreorderBasketItems(
+    Map<String, dynamic> preorder,
+  ) {
+    final cart = preorder['cart'];
+    if (cart is! List || cart.isEmpty) return [];
+    final out = <Map<String, dynamic>>[];
+    for (final item in cart) {
+      if (item is! Map) continue;
+      final m = Map<String, dynamic>.from(item);
+      final dishId = m['f_dish'];
+      final menu = _menuDishById(dishId);
+      out.add(<String, dynamic>{
+        'f_dish': dishId,
+        'f_qty': m['f_qty'] ?? 1,
+        'f_price': m['f_price'] ?? menu?['f_price'] ?? 0,
+        'f_dish_name': m['f_dish_name'] ?? menu?['f_dish_name'] ?? '',
+        'f_order_type': 1,
+        'f_store': 1,
+        'f_print1': menu?['f_print1'] ?? '',
+        'f_print2': menu?['f_print2'] ?? '',
+        'f_cooking_time': menu?['f_cooking_time'] ?? 60,
+        'f_comment': '',
+      });
+    }
+    return out;
+  }
+
+  /// Оформить POS-заказ из веб-предзаказа: без оплаты, комментарий — авто, телефон, имя.
+  Future<void> startSitePreorder(Map<String, dynamic> preorder) async {
+    if (_orderBusy) {
+      dialogController.add('Order is already being processed. Please wait.');
+      return;
+    }
+    final status = int.tryParse('${preorder['f_status']}') ?? 0;
+    if (status != 1) {
+      dialogController.add(locale().sitePreordersStartOnlyActive);
+      return;
+    }
+    final items = _sitePreorderBasketItems(preorder);
+    if (items.isEmpty) {
+      dialogController.add(locale().sitePreordersStartEmptyCart);
+      return;
+    }
+    _applyCookingWindowToItems(items);
+    final comment = _sitePreorderComment(preorder);
+    final preorderId = int.tryParse('${preorder['f_id']}') ?? 0;
+
+    _setOrderBusy(true);
+    var loadingShown = false;
+    try {
+      final ok = await ensureCashSessionBeforeOrder();
+      if (!ok) return;
+
+      await Loading.showUntilDisplayed(locale().loading);
+      loadingShown = true;
+
+      final outcome = await _runPhpOrderCheckout(
+        basketOverride: items,
+        commentOverride: comment,
+        carNumberOverride: comment,
+        skipPayment: true,
+        skipFiscal: true,
+      );
+      if (outcome.error != null) {
+        dialogController.add(outcome.error!);
+        return;
+      }
+
+      final order = outcome.fiscalBundle?['data'];
+      final orderId = order is Map ? '${order['f_id'] ?? ''}'.trim() : '';
+      if (preorderId > 0) {
+        final markRes = await WebHttpQuery(
+          '/engine/v2/carwash/site-preorders/start',
+        ).request(<String, dynamic>{
+          'id': preorderId,
+          if (orderId.isNotEmpty) 'order_id': orderId,
+        });
+        if (!_jsonApiStatusOk(markRes['status'])) {
+          final err = markRes['data']?.toString() ?? locale().sitePreordersStartFailed;
+          dialogController.add(err);
+          return;
+        }
+      }
+
+      if (order is Map) {
+        unawaited(sendReceiptPrintViaWebSocket(
+          order: Map<String, dynamic>.from(order),
+          fiscalTax: null,
+          showLoadingDialog: false,
+        ));
+      }
+
+      dialogController.add(locale().sitePreordersStarted);
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('[/site-preorder] exception: $e\n$st');
+      dialogController.add('${locale().sitePreordersStartFailed}: $e');
+    } finally {
+      if (loadingShown) {
+        Loading.dismiss();
+      }
+      _setOrderBusy(false);
+    }
   }
 
   Future<void> refreshBasketOrderWindowFromServer() async {
@@ -1303,11 +1478,19 @@ class AppModel {
   }
 
   /// Car wash checkout via PHP `Order`: OpenTable → AddDish → SaveData → SetAmount → CloseOrder.
-  Future<_PhpOrderOutcome> _runPhpOrderCheckout() async {
+  Future<_PhpOrderOutcome> _runPhpOrderCheckout({
+    List<Map<String, dynamic>>? basketOverride,
+    String? commentOverride,
+    String? carNumberOverride,
+    bool skipPayment = false,
+    bool skipFiscal = false,
+  }) async {
     // Server-side locksrc is used for logging/tracing; send hostname instead of UUID.
     final lockSrc = Platform.localHostname;
     final table = int.tryParse(prefs.string('table')) ?? 1;
-    final carNumber = carNumberController.text.trim();
+    final carNumber = carNumberOverride ?? carNumberController.text.trim();
+    final comment = commentOverride ?? carNumber;
+    final basket = basketOverride ?? List<Map<String, dynamic>>.from(appdata.basket);
 
     void logOrderStep(String message) {
       final ts = DateTime.now().toIso8601String();
@@ -1378,7 +1561,7 @@ class AppModel {
     var headerId = openHeaderId;
 
     var row = 100;
-    for (final e in List<Map<String, dynamic>>.from(appdata.basket)) {
+    for (final e in basket) {
       final dishId = e['f_dish'];
       final cookingTime = _basketCookingMinutes(e);
       final addRes = await step(
@@ -1429,7 +1612,7 @@ class AppModel {
         'id': headerId,
         'data': <String, dynamic>{
           'f_car_number': carNumber,
-          'f_comment': carNumber,
+          'f_comment': comment,
         },
       });
     });
@@ -1440,31 +1623,33 @@ class AppModel {
     }
     order = _orderFromApiResponse(saveRes) ?? order;
 
-    final bd = appdata.basketData;
-    final payMap = <String, double>{
-      'f_amount_cash': ((bd['f_amountcash'] ?? 0) as num).toDouble(),
-      'f_amount_card': ((bd['f_amountcard'] ?? 0) as num).toDouble(),
-      'f_amount_idram': ((bd['f_amountidram'] ?? 0) as num).toDouble(),
-      'f_amount_other': ((bd['f_amountother'] ?? 0) as num).toDouble(),
-    };
-    for (final pe in payMap.entries) {
-      if (pe.value <= 0) continue;
-      final setRes = await step(
-        'SetAmount id=$headerId field=${pe.key} amount=${pe.value}',
-        () {
-          return _orderApiInvoke('SetAmount', {
-            'id': headerId,
-            'payment_field': pe.key,
-            'amount': pe.value,
-          });
-        },
-      );
-      err = _orderApiErrorMessage(setRes);
-      if (err != null) {
-        await unlock(headerId);
-        return _PhpOrderOutcome.fail(err);
+    if (!skipPayment) {
+      final bd = appdata.basketData;
+      final payMap = <String, double>{
+        'f_amount_cash': ((bd['f_amountcash'] ?? 0) as num).toDouble(),
+        'f_amount_card': ((bd['f_amountcard'] ?? 0) as num).toDouble(),
+        'f_amount_idram': ((bd['f_amountidram'] ?? 0) as num).toDouble(),
+        'f_amount_other': ((bd['f_amountother'] ?? 0) as num).toDouble(),
+      };
+      for (final pe in payMap.entries) {
+        if (pe.value <= 0) continue;
+        final setRes = await step(
+          'SetAmount id=$headerId field=${pe.key} amount=${pe.value}',
+          () {
+            return _orderApiInvoke('SetAmount', {
+              'id': headerId,
+              'payment_field': pe.key,
+              'amount': pe.value,
+            });
+          },
+        );
+        err = _orderApiErrorMessage(setRes);
+        if (err != null) {
+          await unlock(headerId);
+          return _PhpOrderOutcome.fail(err);
+        }
+        order = _orderFromApiResponse(setRes) ?? order;
       }
-      order = _orderFromApiResponse(setRes) ?? order;
     }
 
     var usedLocalFiscal = false;
@@ -1476,11 +1661,12 @@ class AppModel {
       'err': '',
       'result': 0,
     };
+    final bd = skipPayment ? <String, dynamic>{} : appdata.basketData;
 
-    if (printFiscal) {
+    if (!skipFiscal && printFiscal) {
       final fiscalRes = await step('Print fiscal receipt (server)', () async {
         return await _printFiscalReceiptViaFiscalServer(
-          basket: List<Map<String, dynamic>>.from(appdata.basket),
+          basket: List<Map<String, dynamic>>.from(basket),
           bd: bd,
           orderHeaderId: headerId,
           onStep: setOrderLoading,

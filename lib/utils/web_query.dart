@@ -41,7 +41,7 @@ class WebHttpQuery {
     inData['cashsession'] = prefs.getInt('cashsession') ?? 0;
     inData["nootp"] = true;
 
-    Map<String, Object?> outData = {};
+    Map<String, dynamic> outData = {};
     String strBody = jsonEncode(inData);
     final host = prefs.string('webserveraddress');
     final useSsl = prefs.string('usessl').toUpperCase() != 'NO';
@@ -76,7 +76,15 @@ class WebHttpQuery {
       }
       if (response.statusCode < 299) {
         try {
-          outData = jsonDecode(strResponse);
+          final decoded = jsonDecode(strResponse);
+          if (decoded is Map) {
+            outData = Map<String, dynamic>.from(decoded);
+          } else {
+            outData = <String, dynamic>{
+              'status': 0,
+              'data': strResponse,
+            };
+          }
           if (!outData.containsKey('status')) {
             outData['status'] = 0;
             if (!outData.containsKey('data')) {

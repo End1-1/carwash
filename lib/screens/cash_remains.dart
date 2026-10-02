@@ -9,10 +9,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class CashRemainsModel {
   final rows = <List<dynamic>>[];
   final headers = <String>[];
+  int previewSessionId = 0;
+  String previewTodayRemain = '';
 
   void clear() {
     rows.clear();
     headers.clear();
+    previewSessionId = 0;
+    previewTodayRemain = '';
   }
 
   void load(int cashboxId) {
@@ -31,6 +35,9 @@ class CashRemainsModel {
     if (raw is! Map) return;
     final root = Map<String, dynamic>.from(raw);
     final payload = _payload(root);
+    previewSessionId = _intVal(payload['preview_session_id']);
+    previewTodayRemain = '';
+
     final h = payload['headers'];
     if (h is List) {
       headers
@@ -43,12 +50,39 @@ class CashRemainsModel {
       list.sort((a, b) {
         final idA = int.tryParse('${a.isNotEmpty ? a[0] : 0}') ?? 0;
         final idB = int.tryParse('${b.isNotEmpty ? b[0] : 0}') ?? 0;
+        if (idA == previewSessionId) return -1;
+        if (idB == previewSessionId) return 1;
         return idB.compareTo(idA);
       });
       rows
         ..clear()
         ..addAll(list);
     }
+
+    final preview = payload['preview'];
+    if (preview is Map) {
+      final m = Map<String, dynamic>.from(preview);
+      final remain = m['f_today_remain'];
+      if (remain is num) {
+        previewTodayRemain = _formatMoney(remain.toDouble());
+      }
+    }
+    if (previewTodayRemain.isEmpty && previewSessionId > 0) {
+      for (final row in rows) {
+        if (row.isEmpty) continue;
+        if (_intVal(row[0]) == previewSessionId && row.length > 9) {
+          previewTodayRemain = '${row[9]}';
+          break;
+        }
+      }
+    }
+  }
+
+  int _intVal(dynamic v) => int.tryParse('$v') ?? 0;
+
+  String _formatMoney(double v) {
+    if (v == v.roundToDouble()) return '${v.round()}';
+    return v.toStringAsFixed(2);
   }
 
   Map<String, dynamic> _payload(Map<String, dynamic> data) {
@@ -57,6 +91,11 @@ class CashRemainsModel {
       return Map<String, dynamic>.from(d);
     }
     return data;
+  }
+
+  bool isPreviewRow(List<dynamic> row) {
+    if (previewSessionId <= 0 || row.isEmpty) return false;
+    return _intVal(row[0]) == previewSessionId;
   }
 }
 
@@ -136,8 +175,59 @@ class CashRemainsScreen extends AppScreen {
       if (_model.rows.isEmpty) {
         return Center(child: Text(l10n.cashRemainsNoData));
       }
-      return _table(context, l10n);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_model.previewSessionId > 0) _previewBanner(l10n),
+          Expanded(child: _table(context, l10n)),
+        ],
+      );
     });
+  }
+
+  Widget _previewBanner(AppLocalizations l10n) {
+    final remain = _model.previewTodayRemain;
+    return Material(
+      color: Colors.amber.shade50,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.cashRemainsPreviewTitle,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.cashRemainsPreviewHint(_model.previewSessionId),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+            ),
+            if (remain.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    '${l10n.cashRemainsPreviewRemain}: ',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  Text(
+                    remain,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _table(BuildContext context, AppLocalizations l10n) {
@@ -149,6 +239,7 @@ class CashRemainsScreen extends AppScreen {
     final theme = Theme.of(context);
     final borderColor = theme.dividerColor;
     final headerBg = theme.colorScheme.surfaceContainerHighest;
+    final previewBg = Colors.amber.shade100.withValues(alpha: 0.55);
     final colWidths = _CashRemainsTableLayout.dataColumnWidths(cols.length);
     final tableWidth = _CashRemainsTableLayout.totalWidth(cols.length);
 
@@ -205,6 +296,15 @@ class CashRemainsScreen extends AppScreen {
       );
     }
 
+    String cellText(List<dynamic> row, int c) {
+      if (c >= row.length) return '';
+      final v = row[c];
+      if (c == 2 && '$v'.trim().isEmpty) {
+        return l10n.cashRemainsOpenShift;
+      }
+      return '$v';
+    }
+
     TableRow headerRow() {
       return TableRow(
         decoration: BoxDecoration(color: headerBg),
@@ -217,8 +317,12 @@ class CashRemainsScreen extends AppScreen {
     }
 
     TableRow dataRow(int index, List<dynamic> row) {
+      final isPreview = _model.isPreviewRow(row);
       final isLastMoneyCol = cols.length - 1;
       return TableRow(
+        decoration: isPreview
+            ? BoxDecoration(color: previewBg)
+            : null,
         children: [
           dataCell(
             '${index + 1}',
@@ -227,7 +331,7 @@ class CashRemainsScreen extends AppScreen {
           ),
           for (var c = 0; c < cols.length; c++)
             dataCell(
-              c < row.length ? '${row[c] ?? ''}' : '',
+              cellText(row, c),
               colWidths[c],
               align: c <= 2 ? TextAlign.center : TextAlign.end,
               bold: c == isLastMoneyCol,

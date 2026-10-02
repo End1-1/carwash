@@ -116,6 +116,12 @@ bool _httpJsonStatusOk(dynamic status) {
   return s == '1' || s == 'true';
 }
 
+Map<String, dynamic> _requestBody(dynamic data) {
+  if (data is Map<String, dynamic>) return data;
+  if (data is Map) return Map<String, dynamic>.from(data);
+  return <String, dynamic>{};
+}
+
 class AppBloc extends Bloc<AppEvent, AppState> {
   AppBloc() : super(AppState()) {
     on<AppEvent>((event, emit) => emit(AppState()));
@@ -129,7 +135,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
   Future<void> query(AppEventQuery e) async {
     emit(AppStateLoading());
-    final result = await WebHttpQuery(e.route).request(e.data);
+    final result = await WebHttpQuery(e.route).request(_requestBody(e.data));
     if (_httpJsonStatusOk(result['status'])) {
       if (e is AppEventQueryCash || e is AppEventQueryRemoveFromCash) {
         emit(AppStateCash(result['data']));

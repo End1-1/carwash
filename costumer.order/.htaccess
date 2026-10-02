@@ -1,0 +1,19 @@
+# Hyusisayin-Carwash — SPA: /hy, /ru, /en
+# Содержимое costumer.order заливается в корень сайта (RewriteBase /).
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# Файлы и папки как есть (app.js, styles.css, assets/, engine/…)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Корень → армянская версия
+RewriteRule ^$ hy [R=302,L]
+
+# Локали и страницы SPA: /hy, /hy/privacy, /hy/terms, /hy/cancellation
+RewriteRule ^(hy|ru|en)/?$ index.html [L]
+RewriteRule ^(hy|ru|en)/.+$ index.html [L]
+</IfModule>

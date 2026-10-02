@@ -199,7 +199,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashRemainsTitle => 'Cash remains (last 30 shifts)';
 
   @override
-  String get cashRemainsNoData => 'No data for closed shifts';
+  String get cashRemainsNoData => 'No shift data';
+
+  @override
+  String get cashRemainsPreviewTitle => 'If you close the shift now';
+
+  @override
+  String cashRemainsPreviewHint(Object session) {
+    return 'Open shift #$session — calculated at this moment (same as on close).';
+  }
+
+  @override
+  String get cashRemainsPreviewRemain => 'Cash on hand';
+
+  @override
+  String get cashRemainsOpenShift => 'open';
 
   @override
   String get cashdeskCloseQuestion => 'Close active cash session?';
@@ -461,4 +475,68 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get receiptPrintWindowsOnly =>
       'Receipt printing is only implemented on Windows.';
+
+  @override
+  String get sitePreordersTitle => 'Web pre-orders';
+
+  @override
+  String get sitePreordersActive => 'Active';
+
+  @override
+  String get sitePreordersHistory => 'History';
+
+  @override
+  String get sitePreordersEmpty => 'No pre-orders';
+
+  @override
+  String get sitePreordersColId => 'No.';
+
+  @override
+  String get sitePreordersColDate => 'Date';
+
+  @override
+  String get sitePreordersColVisit => 'Visit';
+
+  @override
+  String get sitePreordersColCustomer => 'Customer';
+
+  @override
+  String get sitePreordersColPhone => 'Phone';
+
+  @override
+  String get sitePreordersColCar => 'Car';
+
+  @override
+  String get sitePreordersColServices => 'Services';
+
+  @override
+  String get sitePreordersColTotal => 'Total';
+
+  @override
+  String get sitePreordersColStatus => 'Status';
+
+  @override
+  String get sitePreordersStatusActive => 'Active';
+
+  @override
+  String get sitePreordersStatusDone => 'Done';
+
+  @override
+  String get sitePreordersStatusCancelled => 'Cancelled';
+
+  @override
+  String get sitePreordersStart => 'Start';
+
+  @override
+  String get sitePreordersStarted => 'Order created';
+
+  @override
+  String get sitePreordersStartFailed => 'Failed to create order';
+
+  @override
+  String get sitePreordersStartOnlyActive =>
+      'Only active pre-orders can be started';
+
+  @override
+  String get sitePreordersStartEmptyCart => 'Pre-order has no services';
 }

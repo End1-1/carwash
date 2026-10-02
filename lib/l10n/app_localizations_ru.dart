@@ -198,7 +198,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get cashRemainsTitle => 'Остатки кассы (30 смен)';
 
   @override
-  String get cashRemainsNoData => 'Нет данных по закрытым сменам';
+  String get cashRemainsNoData => 'Нет данных по сменам';
+
+  @override
+  String get cashRemainsPreviewTitle => 'Если закрыть смену сейчас';
+
+  @override
+  String cashRemainsPreviewHint(Object session) {
+    return 'Текущая открытая смена №$session — расчёт на этот момент (как при закрытии).';
+  }
+
+  @override
+  String get cashRemainsPreviewRemain => 'Остаток в кассе';
+
+  @override
+  String get cashRemainsOpenShift => 'открыта';
 
   @override
   String get cashdeskCloseQuestion => 'Закрыть активную смену кассы?';
@@ -460,4 +474,68 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get receiptPrintWindowsOnly =>
       'Печать чека реализована только для Windows.';
+
+  @override
+  String get sitePreordersTitle => 'Веб-предзаказы';
+
+  @override
+  String get sitePreordersActive => 'Активные';
+
+  @override
+  String get sitePreordersHistory => 'История';
+
+  @override
+  String get sitePreordersEmpty => 'Нет предзаказов';
+
+  @override
+  String get sitePreordersColId => '№';
+
+  @override
+  String get sitePreordersColDate => 'Дата';
+
+  @override
+  String get sitePreordersColVisit => 'Приезд';
+
+  @override
+  String get sitePreordersColCustomer => 'Клиент';
+
+  @override
+  String get sitePreordersColPhone => 'Телефон';
+
+  @override
+  String get sitePreordersColCar => 'Авто';
+
+  @override
+  String get sitePreordersColServices => 'Услуги';
+
+  @override
+  String get sitePreordersColTotal => 'Сумма';
+
+  @override
+  String get sitePreordersColStatus => 'Статус';
+
+  @override
+  String get sitePreordersStatusActive => 'Активный';
+
+  @override
+  String get sitePreordersStatusDone => 'Выполнен';
+
+  @override
+  String get sitePreordersStatusCancelled => 'Отменён';
+
+  @override
+  String get sitePreordersStart => 'Начать';
+
+  @override
+  String get sitePreordersStarted => 'Заказ оформлен';
+
+  @override
+  String get sitePreordersStartFailed => 'Не удалось оформить заказ';
+
+  @override
+  String get sitePreordersStartOnlyActive =>
+      'Можно начать только активный предзаказ';
+
+  @override
+  String get sitePreordersStartEmptyCart => 'В предзаказе нет услуг';
 }

@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var APP_VERSION = "tv-app.js 2026-04-11 no-dry-slot-limit";
+  var APP_VERSION = "2026.09.21-g";
   if (typeof console !== "undefined") {
     console.log("[tv] version:", APP_VERSION);
     console.log("[tv] console check: app.js loaded");
@@ -436,15 +436,47 @@
   }
 
   /**
-   * Оплачено по шапке заказа (GoodsInProgress::get → f_header_data): f_amount_other должно быть 0.
-   * Поддержка f_amountother (без подчёркивания). Без валидного заголовка — не считаем оплаченным.
+   * Неоплачено (как HistoryGoods._canPayFromHeader / Cashbox::OrderUnpaidAmount).
+   * Legacy: нет f_amount_other, f_amount_paid=0 и нет нал/карта/idram при ненулевой сумме.
    */
-  function headerPaidByAmountOtherZero(item) {
+  function headerOrderUnpaid(item) {
     var hdr = headerDataStrict(item);
-    if (!hdr) return false;
-    var o = hdr.f_amount_other;
-    if (o == null && hdr.f_amountother != null) o = hdr.f_amountother;
-    return numAmt(o) === 0;
+    if (!hdr) return true;
+
+    var other = hdr.f_amount_other;
+    if (other == null && hdr.f_amountother != null) other = hdr.f_amountother;
+    if (numAmt(other) > 0.009) return true;
+
+    var cash = numAmt(firstVal(hdr.f_amount_cash, hdr.f_amountcash));
+    var card = numAmt(firstVal(hdr.f_amount_card, hdr.f_amountcard));
+    var idram = numAmt(firstVal(hdr.f_amount_idram, hdr.f_amountidram));
+    var paid = cash + card + idram;
+
+    var subTotal = numAmt(firstVal(hdr.f_sub_total, hdr.f_subtotal));
+    var total = numAmt(firstVal(hdr.f_amounttotal, hdr.f_amount_total));
+    var orderTotal = subTotal > 0.009 ? subTotal : total;
+
+    var hasOtherField =
+      Object.prototype.hasOwnProperty.call(hdr, "f_amount_other") ||
+      Object.prototype.hasOwnProperty.call(hdr, "f_amountother");
+    var amountPaid = numAmt(hdr.f_amount_paid);
+
+    if (
+      !hasOtherField &&
+      paid <= 0.009 &&
+      amountPaid <= 0.009 &&
+      orderTotal > 0.009
+    ) {
+      return true;
+    }
+
+    if (orderTotal > 0.009 && paid <= 0.009) return true;
+    return false;
+  }
+
+  /** Оплачен (инверсия headerOrderUnpaid). */
+  function headerOrderIsPaid(item) {
+    return !headerOrderUnpaid(item);
   }
 
   /** Оплата по "реальным" методам: cash/card/idram > 0 (в f_header_data). */
@@ -460,7 +492,7 @@
     return numAmt(cash) > 0 || numAmt(card) > 0 || numAmt(idram) > 0;
   }
 
-  /** Архив 4/1 разрешён только если заказ оплачен (f_amount_other === 0). */
+  /** Архив 4/1 разрешён только если заказ оплачен. */
   function archiveStatusRequiresPaidOrder(status, substatus) {
     return Number(status) === 4 && Number(substatus) === 1;
   }
@@ -702,7 +734,7 @@
     var st = processStatus(order);
     var ss = processSubstatus(order);
     if (st !== 3 || ss !== 5) return false;
-    return !headerPaidByAmountOtherZero(order);
+    return headerOrderUnpaid(order);
   }
 
   function closePaymentRequiredModal() {
@@ -867,6 +899,11 @@
     if (v == null || v === "") return 0;
     var n = Number(v);
     return isNaN(n) ? 0 : n;
+  }
+
+  /** Замена `a ?? b`: оператор недоступен в Firefox < 72 (мобильные сборки). */
+  function firstVal(a, b) {
+    return a == null ? b : a;
   }
 
   function isUnpaidOrder(o) {
@@ -1048,6 +1085,17 @@
     var overlay = document.getElementById("login-overlay");
     if (!overlay) return;
 
+    // Суффикс js подтверждает, что скрипт разобран и выполнен: в HTML стоит html.
+    var verEl = document.getElementById("login-ver");
+    if (verEl) verEl.textContent = APP_VERSION + " js";
+
+    var pinGate = 0;
+    var ignoreMouseUntil = 0;
+
+    function loginVisible() {
+      return overlay && overlay.style.display !== "none" && overlay.getAttribute("aria-hidden") !== "true";
+    }
+
     function onDigit(d) {
       if (loginBusy) return;
       if (pinBuffer.length >= 5) return;
@@ -1056,27 +1104,152 @@
       setLoginError("");
     }
 
-    var pad = overlay.querySelector(".pin-pad");
-    if (pad) {
-      pad.addEventListener("click", function (ev) {
-        var t = ev.target;
-        if (!t || !t.closest) return;
-        var btn = t.closest("[data-pin]");
-        if (!btn) return;
-        var act = btn.getAttribute("data-pin");
-        if (act === "bs") {
-          if (loginBusy || !pinBuffer.length) return;
-          pinBuffer = pinBuffer.slice(0, -1);
-          updatePinDots();
-          return;
-        }
-        if (act === "ok") {
-          submitPinLogin();
-          return;
-        }
-        if (/^\d$/.test(act)) onDigit(act);
-      });
+    function applyPinAct(act) {
+      if (!act) return;
+      if (act === "bs") {
+        if (loginBusy || !pinBuffer.length) return;
+        pinBuffer = pinBuffer.slice(0, -1);
+        updatePinDots();
+        return;
+      }
+      if (act === "ok") {
+        submitPinLogin();
+        return;
+      }
+      if (/^\d$/.test(act)) onDigit(act);
     }
+
+    function isMouseLike(src) {
+      return (
+        src === "click" ||
+        src === "mousedown" ||
+        src === "mouseup" ||
+        src === "pointerdown" ||
+        src === "pointerup"
+      );
+    }
+
+    function handlePinAct(act, src) {
+      if (!act) return;
+      var now = Date.now();
+      src = src || "";
+      // Один жест даёт touchstart + touchend + mousedown + click. Берём первое, остальное режем.
+      if (now - pinGate < 280) return;
+      if (isMouseLike(src) && now < ignoreMouseUntil) return;
+      pinGate = now;
+      if (src.indexOf("touch") === 0) ignoreMouseUntil = now + 800;
+      applyPinAct(act);
+    }
+
+    function pinActFromNode(n) {
+      var hops = 0;
+      while (n && hops < 12) {
+        if (n.nodeType === 1 && n.getAttribute) {
+          var a = n.getAttribute("data-pin");
+          if (a) return a;
+        }
+        n = n.parentNode || n.parentElement;
+        hops += 1;
+      }
+      return "";
+    }
+
+    function eventPoint(ev) {
+      if (!ev) return null;
+      var t = null;
+      if (ev.touches && ev.touches.length) t = ev.touches[0];
+      else if (ev.changedTouches && ev.changedTouches.length) t = ev.changedTouches[0];
+      else t = ev;
+      if (!t || typeof t.clientX !== "number") return null;
+      return { x: t.clientX, y: t.clientY };
+    }
+
+    function pinActFromEvent(ev, hintEl) {
+      var act = pinActFromNode(hintEl);
+      if (act) return act;
+      if (!ev) return "";
+      act = pinActFromNode(ev.currentTarget);
+      if (act) return act;
+      act = pinActFromNode(ev.srcElement || ev.target);
+      if (act) return act;
+      var pt = eventPoint(ev);
+      if (!pt || !document.elementFromPoint) return "";
+      try {
+        return pinActFromNode(document.elementFromPoint(pt.x, pt.y));
+      } catch (err) {
+        return "";
+      }
+    }
+
+    function onPinPointer(ev, hintEl) {
+      ev = ev || window.event;
+      if (!ev) return false;
+      if (!loginVisible()) return false;
+      if (typeof ev.button === "number" && ev.button > 0) return false;
+      var act = pinActFromEvent(ev, hintEl);
+      if (!act) return false;
+      handlePinAct(act, ev.type || "tap");
+      try {
+        if (ev.preventDefault) ev.preventDefault();
+        if (ev.stopPropagation) ev.stopPropagation();
+      } catch (err) {}
+      return false;
+    }
+
+    window.__tvPinPress = function (ev, hintEl) {
+      if (!hintEl && this && this.getAttribute) hintEl = this;
+      return onPinPointer(ev, hintEl);
+    };
+
+    function listen(node, type, fn) {
+      if (!node || !node.addEventListener) return;
+      try {
+        node.addEventListener(type, fn, true);
+      } catch (e1) {
+        try {
+          node.addEventListener(type, fn);
+        } catch (e2) {}
+      }
+    }
+
+    function bindKey(el) {
+      function go(ev) {
+        return onPinPointer(ev, el);
+      }
+      el.onclick = go;
+      el.ontouchend = go;
+    }
+
+    var nodes = overlay.getElementsByTagName("*");
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].getAttribute && nodes[i].getAttribute("data-pin")) bindKey(nodes[i]);
+    }
+
+    listen(document, "keydown", function (ev) {
+      ev = ev || window.event;
+      if (!ev || !loginVisible()) return;
+      var k = ev.key || "";
+      var code = ev.keyCode || ev.which;
+      if (k === "Backspace" || k === "Delete" || code === 8 || code === 46) {
+        if (ev.preventDefault) ev.preventDefault();
+        handlePinAct("bs", "keydown");
+        return;
+      }
+      if (k === "Enter" || code === 13) {
+        if (ev.preventDefault) ev.preventDefault();
+        handlePinAct("ok", "keydown");
+        return;
+      }
+      if (/^\d$/.test(k)) {
+        if (ev.preventDefault) ev.preventDefault();
+        handlePinAct(k, "keydown");
+        return;
+      }
+      if (code >= 48 && code <= 57) {
+        if (ev.preventDefault) ev.preventDefault();
+        handlePinAct(String(code - 48), "keydown");
+      }
+    });
   }
 
   function formatTime(input) {
@@ -1190,7 +1363,7 @@
     if (numEl) {
       numEl.textContent = car;
       // Оплаченный заказ: выделяем номер машины квадратным бейджем.
-      numEl.classList.toggle("number--paid-square", headerPaidByAmountOtherZero(disp));
+      numEl.classList.toggle("number--paid-square", headerOrderIsPaid(disp));
     }
     var svcEl = rowEl.querySelector(".service");
     svcEl.textContent = service;
@@ -2035,7 +2208,7 @@
     }
     // Сушка 2/3: лимит по количеству постов в зале не применяем (см. dry в ответе API).
     if (archiveStatusRequiresPaidOrder(status, substatus)) {
-      if (!headerPaidByAmountOtherZero(order)) {
+      if (headerOrderUnpaid(order)) {
         openLimitModal(
           tr("err_payment_required_archive_only"),
           "payment_required_title"

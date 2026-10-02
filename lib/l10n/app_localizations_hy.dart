@@ -197,7 +197,21 @@ class AppLocalizationsHy extends AppLocalizations {
   String get cashRemainsTitle => 'Դրամարկղի մնացորդներ (30 հերթափոխ)';
 
   @override
-  String get cashRemainsNoData => 'Փակված հերթափոխերի տվյալներ չկան';
+  String get cashRemainsNoData => 'Հերթափոխերի տվյալներ չկան';
+
+  @override
+  String get cashRemainsPreviewTitle => 'Եթե հիմա փակել հերթափոխը';
+
+  @override
+  String cashRemainsPreviewHint(Object session) {
+    return 'Բաց հերթափոխ №$session — հաշվարկը այս պահի համար (ինչպես փակելիս)։';
+  }
+
+  @override
+  String get cashRemainsPreviewRemain => 'Դրամարկղի մնացորդ';
+
+  @override
+  String get cashRemainsOpenShift => 'բաց';
 
   @override
   String get cashdeskCloseQuestion => 'Փակե՞լ ակտիվ դրամարկղի հերթափոխը։';
@@ -460,4 +474,69 @@ class AppLocalizationsHy extends AppLocalizations {
   @override
   String get receiptPrintWindowsOnly =>
       'Չեկի տպումը կատարվում է միայն Windows-ում։';
+
+  @override
+  String get sitePreordersTitle => 'Վեբ նախապատվերներ';
+
+  @override
+  String get sitePreordersActive => 'Ակտիվ';
+
+  @override
+  String get sitePreordersHistory => 'Պատմություն';
+
+  @override
+  String get sitePreordersEmpty => 'Նախապատվերներ չկան';
+
+  @override
+  String get sitePreordersColId => '№';
+
+  @override
+  String get sitePreordersColDate => 'Ամսաթիվ';
+
+  @override
+  String get sitePreordersColVisit => 'Ժամանում';
+
+  @override
+  String get sitePreordersColCustomer => 'Հաճախորդ';
+
+  @override
+  String get sitePreordersColPhone => 'Հեռախոս';
+
+  @override
+  String get sitePreordersColCar => 'Ավտո';
+
+  @override
+  String get sitePreordersColServices => 'Ծառայություններ';
+
+  @override
+  String get sitePreordersColTotal => 'Գումար';
+
+  @override
+  String get sitePreordersColStatus => 'Կարգավիճակ';
+
+  @override
+  String get sitePreordersStatusActive => 'Ակտիվ';
+
+  @override
+  String get sitePreordersStatusDone => 'Կատարված';
+
+  @override
+  String get sitePreordersStatusCancelled => 'Չեղարկված';
+
+  @override
+  String get sitePreordersStart => 'Սկսել';
+
+  @override
+  String get sitePreordersStarted => 'Պատվերը ձևակերպված է';
+
+  @override
+  String get sitePreordersStartFailed => 'Չհաջողվեց ձևակերպել պատվերը';
+
+  @override
+  String get sitePreordersStartOnlyActive =>
+      'Կարելի է սկսել միայն ակտիվ նախապատվերը';
+
+  @override
+  String get sitePreordersStartEmptyCart =>
+      'Նախապատվերում ծառայություններ չկան';
 }

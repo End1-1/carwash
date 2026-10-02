@@ -71,6 +71,17 @@ class AppNavPopupMenuButton extends StatelessWidget {
       ),
       PopupMenuItem<void>(
         child: ListTile(
+          leading: const Icon(Icons.language_outlined),
+          title: Text(l10n.sitePreordersTitle),
+          onTap: () {
+            Navigator.pop(context);
+            _beforeNav();
+            model.navSitePreorders();
+          },
+        ),
+      ),
+      PopupMenuItem<void>(
+        child: ListTile(
           leading: const Icon(Icons.history_outlined),
           title: Text(l10n.history),
           onTap: () {

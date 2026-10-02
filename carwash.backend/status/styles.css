@@ -297,21 +297,64 @@ h2 {
 
 .overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1000;
   background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
+  pointer-events: none;
 }
 
-.login-overlay {
-  z-index: 1100;
+.overlay[aria-hidden="false"] {
+  pointer-events: auto;
+}
+
+.js-error {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 40000;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: monospace;
+  line-height: 1.35;
+  word-break: break-word;
+  background: #b71c1c;
+  color: #fff;
+}
+
+.login-overlay,
+.login-overlay[aria-hidden="false"] {
+  z-index: 30000;
+  pointer-events: auto;
 }
 
 .login-panel {
+  position: relative;
   max-width: 340px;
+}
+
+.login-panel .dialog-head {
+  padding-right: 88px;
+}
+
+.login-ver {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  z-index: 1;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+  user-select: none;
 }
 
 .login-body {
@@ -349,28 +392,39 @@ h2 {
 .pin-pad {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   align-items: center;
 }
 
+/* Отступы держим на margin клавиш: flex gap есть не во всех мобильных сборках. */
 .pin-row {
   display: flex;
-  gap: 8px;
   justify-content: center;
 }
 
 .pin-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   min-width: 56px;
   min-height: 52px;
+  margin: 4px;
   padding: 8px 12px;
   font-size: 22px;
   font-weight: 700;
+  line-height: 1;
   border: 1px solid rgba(0, 0, 0, 0.26);
   border-radius: 6px;
   background: var(--flutter-white);
   color: var(--flutter-on-surface);
   cursor: pointer;
   touch-action: manipulation;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.12);
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .pin-key:active {

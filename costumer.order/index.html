@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="hy">
+<head>
+  <meta charset="utf-8">
+  <script>
+    (function () {
+      var p = location.pathname || "/";
+      var m = p.match(/^(.*\/costumer\.order)\/?/i);
+      window.__SITE_BASE__ = m ? m[1] + "/" : "/";
+      var base = document.createElement("base");
+      base.href = window.__SITE_BASE__;
+      document.head.appendChild(base);
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#004779">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Hyusisayin">
+  <title>Hyusisayin-Carwash</title>
+  <link rel="icon" type="image/png" href="assets/big.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css?v=28">
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="topbar">
+      <button type="button" class="topbar-brand" id="btn-home" aria-label="Hyusisayin-Carwash">
+        <img src="assets/big.png" alt="" class="topbar-logo">
+        <span class="topbar-name">Hyusisayin-Carwash</span>
+      </button>
+      <div class="topbar-actions">
+        <button type="button" id="btn-account" class="topbar-btn" aria-label="Account">
+          <svg class="topbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.2 0-7.5 2.2-7.5 5v1h15v-1c0-2.8-3.3-5-7.5-5Z"/></svg>
+        </button>
+        <div class="lang-select-wrap">
+          <select id="lang-select" class="lang-select" aria-label="Language">
+            <option value="hy">HY</option>
+            <option value="ru">RU</option>
+            <option value="en">EN</option>
+          </select>
+        </div>
+        <button type="button" id="btn-cart" class="topbar-btn" aria-label="Cart">
+          <svg class="topbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2Zm10 0c-1.1 0-1.99.9-1.99 2S15.9 22 17 22s2-.9 2-2-.9-2-2-2ZM7.16 14h9.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49a1 1 0 0 0-.87-1.48H5.21L4.27 2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7.42l-.26-.02Z"/></svg>
+          <span id="cart-badge" class="topbar-badge" hidden></span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main" class="main"></main>
+
+    <div id="action-bar" class="action-bar" hidden>
+      <div id="action-policy-agree" class="action-policy-agree"></div>
+      <button type="button" id="btn-next" class="btn-primary" disabled></button>
+    </div>
+
+    <footer class="site-footer">
+      <p class="site-footer-copy">© <span id="footer-year"></span> Smart Parking LLC · Hyusisayin-Carwash</p>
+      <p class="site-footer-entity" id="footer-entity"></p>
+      <p class="site-footer-address" id="footer-address"></p>
+      <p class="site-footer-contacts">
+        <a id="footer-phone" href="tel:+37495055838"></a>
+        <span class="sep">·</span>
+        <a id="footer-email" href="mailto:info@hyusisayin-carwash.am"></a>
+      </p>
+      <nav class="site-footer-legal" aria-label="Policies">
+        <a class="footer-link" id="footer-link-terms" data-legal="terms" href="hy/terms"></a>
+        <span class="sep">·</span>
+        <a class="footer-link" id="footer-link-cancellation" data-legal="cancellation" href="hy/cancellation"></a>
+        <span class="sep">·</span>
+        <a class="footer-link" id="footer-link-privacy" data-legal="privacy" href="hy/privacy"></a>
+      </nav>
+      <div id="footer-cards" class="pay-logos" aria-label="ArCa, Visa, Mastercard, MIR"></div>
+    </footer>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <script src="app.js?v=35"></script>
+</body>
+</html>

@@ -8,7 +8,25 @@
   <meta http-equiv="Expires" content="0">
   <link rel="icon" href="/status/favicon.ico" sizes="any">
   <title>Carwash Status</title>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=20260921g">
+  <script>
+    // Старые мобильные движки молча умирают на синтаксисе: показываем ошибку на экране.
+    window.onerror = function (msg, src, line, col) {
+      try {
+        var box = document.getElementById("js-error");
+        if (!box) {
+          box = document.createElement("div");
+          box.id = "js-error";
+          box.className = "js-error";
+          (document.body || document.documentElement).appendChild(box);
+        }
+        box.style.display = "block";
+        box.textContent =
+          "JS: " + msg + " @ " + String(src).replace(/^.*\//, "") + ":" + line + ":" + col;
+      } catch (e) {}
+      return false;
+    };
+  </script>
 </head>
 <body>
   <header class="topbar">
@@ -28,44 +46,6 @@
     </div>
   </header>
   <div id="status-line" class="status-line" data-i18n="init_status">սկզբնավորում…</div>
-
-  <div id="login-overlay" class="overlay login-overlay" style="display: flex" aria-hidden="false">
-    <div class="dialog login-panel" role="dialog" aria-labelledby="login-title">
-      <div class="dialog-head" id="login-title" data-i18n="login_title">Մուտք</div>
-      <div class="login-body">
-        <div class="pin-dots" aria-live="polite">
-          <span class="pin-dot"></span>
-          <span class="pin-dot"></span>
-          <span class="pin-dot"></span>
-          <span class="pin-dot"></span>
-          <span class="pin-dot"></span>
-        </div>
-        <div id="login-error" class="login-error" role="alert"></div>
-        <div class="pin-pad">
-          <div class="pin-row">
-            <button type="button" class="pin-key" data-pin="1">1</button>
-            <button type="button" class="pin-key" data-pin="2">2</button>
-            <button type="button" class="pin-key" data-pin="3">3</button>
-          </div>
-          <div class="pin-row">
-            <button type="button" class="pin-key" data-pin="4">4</button>
-            <button type="button" class="pin-key" data-pin="5">5</button>
-            <button type="button" class="pin-key" data-pin="6">6</button>
-          </div>
-          <div class="pin-row">
-            <button type="button" class="pin-key" data-pin="7">7</button>
-            <button type="button" class="pin-key" data-pin="8">8</button>
-            <button type="button" class="pin-key" data-pin="9">9</button>
-          </div>
-          <div class="pin-row">
-            <button type="button" class="pin-key pin-key--wide" data-pin="bs" data-i18n-aria="pin_clear_aria">⌫</button>
-            <button type="button" class="pin-key" data-pin="0">0</button>
-            <button type="button" class="pin-key pin-key--accent" data-pin="ok">OK</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <main class="layout">
     <section class="card">
@@ -182,7 +162,46 @@
     </article>
   </template>
 
-  <script src="./i18n.js"></script>
-  <script src="./app.js"></script>
+  <div id="login-overlay" class="overlay login-overlay" style="display: flex" aria-hidden="false">
+    <div class="dialog login-panel" role="dialog" aria-labelledby="login-title">
+      <span class="login-ver" id="login-ver">2026.09.21-g html</span>
+      <div class="dialog-head" id="login-title" data-i18n="login_title">Մուտք</div>
+      <div class="login-body">
+        <div class="pin-dots" aria-live="polite">
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+        </div>
+        <div id="login-error" class="login-error" role="alert"></div>
+        <div class="pin-pad">
+          <div class="pin-row">
+            <div class="pin-key" role="button" tabindex="-1" data-pin="1" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">1</div>
+            <div class="pin-key" role="button" tabindex="-1" data-pin="2" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">2</div>
+            <div class="pin-key" role="button" tabindex="-1" data-pin="3" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">3</div>
+          </div>
+          <div class="pin-row">
+            <div class="pin-key" role="button" tabindex="-1" data-pin="4" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">4</div>
+            <div class="pin-key" role="button" tabindex="-1" data-pin="5" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">5</div>
+            <div class="pin-key" role="button" tabindex="-1" data-pin="6" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">6</div>
+          </div>
+          <div class="pin-row">
+            <div class="pin-key" role="button" tabindex="-1" data-pin="7" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">7</div>
+            <div class="pin-key" role="button" tabindex="-1" data-pin="8" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">8</div>
+            <div class="pin-key" role="button" tabindex="-1" data-pin="9" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">9</div>
+          </div>
+          <div class="pin-row">
+            <div class="pin-key pin-key--wide" role="button" tabindex="-1" data-pin="bs" data-i18n-aria="pin_clear_aria" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">⌫</div>
+            <div class="pin-key" role="button" tabindex="-1" data-pin="0" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">0</div>
+            <div class="pin-key pin-key--accent" role="button" tabindex="-1" data-pin="ok" ontouchend="return window.__tvPinPress(event,this)" onclick="return window.__tvPinPress(event,this)">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./i18n.js?v=20260921c"></script>
+  <script src="./app.js?v=20260921g"></script>
 </body>
 </html>

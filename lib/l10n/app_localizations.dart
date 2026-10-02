@@ -475,8 +475,32 @@ abstract class AppLocalizations {
   /// No description provided for @cashRemainsNoData.
   ///
   /// In en, this message translates to:
-  /// **'No data for closed shifts'**
+  /// **'No shift data'**
   String get cashRemainsNoData;
+
+  /// No description provided for @cashRemainsPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'If you close the shift now'**
+  String get cashRemainsPreviewTitle;
+
+  /// No description provided for @cashRemainsPreviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open shift #{session} — calculated at this moment (same as on close).'**
+  String cashRemainsPreviewHint(Object session);
+
+  /// No description provided for @cashRemainsPreviewRemain.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash on hand'**
+  String get cashRemainsPreviewRemain;
+
+  /// No description provided for @cashRemainsOpenShift.
+  ///
+  /// In en, this message translates to:
+  /// **'open'**
+  String get cashRemainsOpenShift;
 
   /// No description provided for @cashdeskCloseQuestion.
   ///
@@ -975,6 +999,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Receipt printing is only implemented on Windows.'**
   String get receiptPrintWindowsOnly;
+
+  /// No description provided for @sitePreordersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Web pre-orders'**
+  String get sitePreordersTitle;
+
+  /// No description provided for @sitePreordersActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get sitePreordersActive;
+
+  /// No description provided for @sitePreordersHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get sitePreordersHistory;
+
+  /// No description provided for @sitePreordersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No pre-orders'**
+  String get sitePreordersEmpty;
+
+  /// No description provided for @sitePreordersColId.
+  ///
+  /// In en, this message translates to:
+  /// **'No.'**
+  String get sitePreordersColId;
+
+  /// No description provided for @sitePreordersColDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get sitePreordersColDate;
+
+  /// No description provided for @sitePreordersColVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit'**
+  String get sitePreordersColVisit;
+
+  /// No description provided for @sitePreordersColCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer'**
+  String get sitePreordersColCustomer;
+
+  /// No description provided for @sitePreordersColPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get sitePreordersColPhone;
+
+  /// No description provided for @sitePreordersColCar.
+  ///
+  /// In en, this message translates to:
+  /// **'Car'**
+  String get sitePreordersColCar;
+
+  /// No description provided for @sitePreordersColServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Services'**
+  String get sitePreordersColServices;
+
+  /// No description provided for @sitePreordersColTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get sitePreordersColTotal;
+
+  /// No description provided for @sitePreordersColStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get sitePreordersColStatus;
+
+  /// No description provided for @sitePreordersStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get sitePreordersStatusActive;
+
+  /// No description provided for @sitePreordersStatusDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get sitePreordersStatusDone;
+
+  /// No description provided for @sitePreordersStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get sitePreordersStatusCancelled;
+
+  /// No description provided for @sitePreordersStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get sitePreordersStart;
+
+  /// No description provided for @sitePreordersStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Order created'**
+  String get sitePreordersStarted;
+
+  /// No description provided for @sitePreordersStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create order'**
+  String get sitePreordersStartFailed;
+
+  /// No description provided for @sitePreordersStartOnlyActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Only active pre-orders can be started'**
+  String get sitePreordersStartOnlyActive;
+
+  /// No description provided for @sitePreordersStartEmptyCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-order has no services'**
+  String get sitePreordersStartEmptyCart;
 }
 
 class _AppLocalizationsDelegate
