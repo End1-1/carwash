@@ -100,6 +100,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get useSsl => 'Use SSL';
 
   @override
+  String get testTimeScale => 'Test time scale';
+
+  @override
+  String get testTimeScaleHint =>
+      'When on, the coefficient divides the 60-minute wash and the free-parking end at 120 minutes after bay entry.';
+
+  @override
+  String get testTimeCoefficient => 'Test time coefficient';
+
+  @override
+  String get testTimeScaleSaveFailed => 'Could not save the test time scale';
+
+  @override
   String get amount => 'Amount';
 
   @override

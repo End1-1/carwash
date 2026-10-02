@@ -36,6 +36,7 @@ class GoodsInProgress extends Auth
         $this->result["data"] = $this->select($sql)->fetch_all(MYSQLI_ASSOC);
         $this->result["tables"] = $this->select("select f_id, f_name from h_tables where f_hall=1")->fetch_all(MYSQLI_ASSOC);
         $this->result["dry"] = $this->select("select f_id, f_name from h_tables where f_hall=2")->fetch_all(MYSQLI_ASSOC);
+        $this->result["bay_time"] = carwash_bay_time_scale_public();
         $this->echoResult();
     }
 
@@ -59,5 +60,29 @@ class GoodsInProgress extends Auth
         // i = корневой f_status; i или s = f_substatus в JSON (подставьте тип под вашу схему); s = f_id (uuid)
         $this->select($sql, "iis", [$st, $ss, $params->id], true);
         $this->get($params);
+    }
+
+    public function GetBayTimeScale($params)
+    {
+        require_once __DIR__ . "/bay_schedule.php";
+        $this->result["bay_time"] = carwash_bay_time_scale_public();
+        $this->echoResult();
+    }
+
+    public function SetBayTimeScale($params)
+    {
+        require_once __DIR__ . "/bay_schedule.php";
+        $enabled = ($params->enabled ?? 0) === 1
+            || ($params->enabled ?? 0) === "1"
+            || ($params->enabled ?? 0) === true;
+        $coeff = isset($params->coeff) ? (int)$params->coeff : 60;
+        if (!carwash_bay_time_scale_save($enabled ? 1 : 0, $coeff)) {
+            $this->result["status"] = 0;
+            $this->result["data"] = "Could not store bay time scale";
+            $this->echoResult();
+            return;
+        }
+        $this->result["bay_time"] = carwash_bay_time_scale_public();
+        $this->echoResult();
     }
 }

@@ -11,6 +11,16 @@
   var API_URL =
     getQueryParam("api") || "/engine/v2/carwash/goods-in-progress/get";
   var REFRESH_MS = 20000;
+
+  function bayTimeFromPayload(json) {
+    if (!json || typeof json !== "object") return null;
+    if (json.bay_time && typeof json.bay_time === "object") return json.bay_time;
+    var data = json.data;
+    if (data && typeof data === "object" && !Array.isArray(data) && data.bay_time && typeof data.bay_time === "object") {
+      return data.bay_time;
+    }
+    return null;
+  }
   /** Мигание (3/4): время через ogpStatusSubTime(..., 3, 4) — см. комментарий у ogpStatusSubTime */
   var DONE34_BLINK_AFTER_MINUTES = 40;
   var REQUEST_TIMEOUT_MS = 7000;
@@ -2479,7 +2489,7 @@
           }
         }
         if (window.carwashBayBoard && window.carwashBayBoard.render) {
-          window.carwashBayBoard.render(cleaned);
+          window.carwashBayBoard.render(cleaned, bayTimeFromPayload(json));
         }
         updateColumn(activeListEl, activeCache, activeOrder, inProgDisplay, false);
         updateColumn(queuedListEl, queuedCache, queuedOrder, pendingDisplay, true);

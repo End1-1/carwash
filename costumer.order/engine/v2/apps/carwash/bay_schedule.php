@@ -5,11 +5,135 @@
  * 3 bays, 60 minutes wash+dry from bay entry, free parking until entry+120,
  * then paid parking off the schedule. Queue is arrival order and only enters
  * a bay that is not in its wash hour. The clock starts when the bay is assigned.
+ *
+ * Test time scale (staff settings, default off) divides only those two
+ * durations. Entry timestamps stay Y-m-d H:i:s of the assignment instant.
+ * The 20-second status poll is not scaled.
  */
 
 const CARWASH_BAY_COUNT = 3;
 const CARWASH_WASH_SEC = 3600;
 const CARWASH_PARK_END_SEC = 7200;
+
+function carwash_bay_time_scale_paths(): array
+{
+    return [
+        __DIR__ . DIRECTORY_SEPARATOR . "bay_time_scale.json",
+        rtrim(sys_get_temp_dir(), "/\\") . DIRECTORY_SEPARATOR . "carwash_bay_time_scale.json",
+    ];
+}
+
+function carwash_bay_time_scale_load(): array
+{
+    $off = ["enabled" => 0, "coeff" => 60];
+    $path = null;
+    $bestMtime = -1;
+    foreach (carwash_bay_time_scale_paths() as $candidate) {
+        if (!is_file($candidate)) {
+            continue;
+        }
+        $mtime = @filemtime($candidate);
+        if ($mtime === false) {
+            $mtime = 0;
+        }
+        if ($mtime >= $bestMtime) {
+            $bestMtime = $mtime;
+            $path = $candidate;
+        }
+    }
+    if ($path === null) {
+        return $off;
+    }
+    $raw = @file_get_contents($path);
+    if ($raw === false || $raw === "") {
+        return $off;
+    }
+    $json = json_decode($raw, true);
+    if (!is_array($json)) {
+        return $off;
+    }
+    $enabled = ($json["enabled"] ?? 0) === 1
+        || ($json["enabled"] ?? 0) === "1"
+        || ($json["enabled"] ?? 0) === true;
+    $coeff = isset($json["coeff"]) ? (int)$json["coeff"] : 60;
+    if ($coeff < 1) {
+        $coeff = 60;
+    }
+    if ($coeff > 1000000) {
+        $coeff = 1000000;
+    }
+    return ["enabled" => $enabled ? 1 : 0, "coeff" => $coeff];
+}
+
+function carwash_bay_time_scale_save(int $enabled, int $coeff): bool
+{
+    if ($coeff < 1) {
+        $coeff = 60;
+    }
+    if ($coeff > 1000000) {
+        $coeff = 1000000;
+    }
+    $payload = json_encode(
+        ["enabled" => $enabled ? 1 : 0, "coeff" => $coeff],
+        JSON_UNESCAPED_UNICODE
+    );
+    if ($payload === false) {
+        return false;
+    }
+    $ok = false;
+    foreach (carwash_bay_time_scale_paths() as $path) {
+        $tmp = $path . ".tmp";
+        if (file_put_contents($tmp, $payload, LOCK_EX) === false) {
+            continue;
+        }
+        if (is_file($path)) {
+            @unlink($path);
+        }
+        if (@rename($tmp, $path)) {
+            $ok = true;
+        } else {
+            @unlink($tmp);
+        }
+    }
+    return $ok;
+}
+
+function carwash_bay_time_scale_durations(): array
+{
+    $scale = carwash_bay_time_scale_load();
+    $wash = (float)CARWASH_WASH_SEC;
+    $park = (float)CARWASH_PARK_END_SEC;
+    if ((int)$scale["enabled"] === 1) {
+        $coeff = (int)$scale["coeff"];
+        if ($coeff < 1) {
+            $coeff = 60;
+        }
+        $wash = CARWASH_WASH_SEC / $coeff;
+        $park = CARWASH_PARK_END_SEC / $coeff;
+    }
+    return [
+        "enabled" => (int)$scale["enabled"],
+        "coeff" => (int)$scale["coeff"],
+        "wash" => $wash,
+        "park" => $park,
+    ];
+}
+
+function carwash_bay_time_scale_public(): array
+{
+    $d = carwash_bay_time_scale_durations();
+    return [
+        "enabled" => $d["enabled"],
+        "coeff" => $d["coeff"],
+        "wash_sec" => $d["wash"],
+        "park_end_sec" => $d["park"],
+    ];
+}
+
+function carwash_sql_after($entry, $seconds): string
+{
+    return date("Y-m-d H:i:s", (int)round((int)$entry + (float)$seconds));
+}
 
 function carwash_bay_schedule_apply($db): void
 {
@@ -50,15 +174,19 @@ function carwash_bay_schedule_apply_locked($db): void
         $groups[$hid][] = $row;
     }
 
+    $dur = carwash_bay_time_scale_durations();
+    $washSec = $dur["wash"];
+    $parkSec = $dur["park"];
+
     $cars = [];
     $linesByHeader = [];
     foreach ($groups as $hid => $lines) {
-        $cars[] = carwash_car_from_lines($hid, $lines);
+        $cars[] = carwash_car_from_lines($hid, $lines, $washSec);
         $linesByHeader[$hid] = $lines;
     }
 
     $now = time();
-    $next = carwash_advance_bay_schedule($cars, $now);
+    $next = carwash_advance_bay_schedule($cars, $now, $washSec, $parkSec);
 
     foreach ($next as $car) {
         $hid = $car["headerId"];
@@ -66,7 +194,7 @@ function carwash_bay_schedule_apply_locked($db): void
         foreach ($lines as $line) {
             $ogp = carwash_ogp_array($line["f_data"]);
             $before = carwash_schedule_signature((int)$line["f_status"], $ogp);
-            $updated = carwash_apply_car_state($ogp, $car, $now);
+            $updated = carwash_apply_car_state($ogp, $car, $now, $washSec, $parkSec);
             $status = (int)$car["status"];
             $after = carwash_schedule_signature($status, $updated);
             if ($before === $after) {
@@ -152,7 +280,7 @@ function carwash_sql_time($value): ?int
     return $t;
 }
 
-function carwash_car_from_lines(string $headerId, array $lines): array
+function carwash_car_from_lines(string $headerId, array $lines, float $washSec = CARWASH_WASH_SEC): array
 {
     $lineIds = [];
     $arrival = null;
@@ -189,7 +317,7 @@ function carwash_car_from_lines(string $headerId, array $lines): array
         } elseif ($st === 3 && $ss === 4) {
             if ($entry === null) {
                 $doneAt = carwash_sql_time($ogp["f_status_3_4_time"] ?? null);
-                $entry = $doneAt !== null ? $doneAt - CARWASH_WASH_SEC : time() - CARWASH_WASH_SEC;
+                $entry = $doneAt !== null ? $doneAt - $washSec : time() - $washSec;
             }
             if ($free === null) {
                 $free = ["entry" => $entry];
@@ -223,7 +351,7 @@ function carwash_car_state($headerId, $lineIds, $arrival, $status, $substatus, $
     ];
 }
 
-function carwash_advance_bay_schedule(array $input, int $now): array
+function carwash_advance_bay_schedule(array $input, int $now, float $washSec = CARWASH_WASH_SEC, float $parkSec = CARWASH_PARK_END_SEC): array
 {
     $cars = [];
     foreach ($input as $c) {
@@ -240,11 +368,11 @@ function carwash_advance_bay_schedule(array $input, int $now): array
             if ($c["entry"] === null) {
                 $c["entry"] = $now;
             }
-            if ($now >= $c["entry"] + CARWASH_PARK_END_SEC) {
+            if ($now >= $c["entry"] + $parkSec) {
                 $cars[$i] = carwash_mark_paid($c);
                 continue;
             }
-            if ($now >= $c["entry"] + CARWASH_WASH_SEC) {
+            if ($now >= $c["entry"] + $washSec) {
                 $c = carwash_mark_free($c);
             } else {
                 $c["status"] = 2;
@@ -252,7 +380,7 @@ function carwash_advance_bay_schedule(array $input, int $now): array
                 $c["paid"] = false;
             }
         } elseif ((int)$c["status"] === 3 && (int)$c["substatus"] === 4) {
-            if ($c["entry"] === null || $now >= $c["entry"] + CARWASH_PARK_END_SEC) {
+            if ($c["entry"] === null || $now >= $c["entry"] + $parkSec) {
                 $cars[$i] = carwash_mark_paid($c);
                 continue;
             }
@@ -374,7 +502,7 @@ function carwash_mark_queue(array $c): array
     return $c;
 }
 
-function carwash_apply_car_state(array $ogp, array $car, int $now): array
+function carwash_apply_car_state(array $ogp, array $car, int $now, float $washSec = CARWASH_WASH_SEC, float $parkSec = CARWASH_PARK_END_SEC): array
 {
     $ogp["f_substatus"] = (int)$car["substatus"];
     $ogp["f_bay"] = (int)$car["bay"];
@@ -394,8 +522,8 @@ function carwash_apply_car_state(array $ogp, array $car, int $now): array
         $ogp["f_substatus"] = 2;
         $ogp["f_bay_entry"] = $entryStr;
         $ogp["f_status_2_2_time"] = $entryStr;
-        $ogp["f_wash_end"] = date("Y-m-d H:i:s", (int)$car["entry"] + CARWASH_WASH_SEC);
-        $ogp["f_free_parking_end"] = date("Y-m-d H:i:s", (int)$car["entry"] + CARWASH_PARK_END_SEC);
+        $ogp["f_wash_end"] = carwash_sql_after($car["entry"], $washSec);
+        $ogp["f_free_parking_end"] = carwash_sql_after($car["entry"], $parkSec);
         return $ogp;
     }
     if ((int)$car["status"] === 3 && (int)$car["substatus"] === 4 && $car["entry"] !== null) {
@@ -403,8 +531,8 @@ function carwash_apply_car_state(array $ogp, array $car, int $now): array
         $ogp["f_bay"] = 0;
         $ogp["f_substatus"] = 4;
         $ogp["f_bay_entry"] = $entryStr;
-        $ogp["f_status_3_4_time"] = date("Y-m-d H:i:s", (int)$car["entry"] + CARWASH_WASH_SEC);
-        $ogp["f_free_parking_end"] = date("Y-m-d H:i:s", (int)$car["entry"] + CARWASH_PARK_END_SEC);
+        $ogp["f_status_3_4_time"] = carwash_sql_after($car["entry"], $washSec);
+        $ogp["f_free_parking_end"] = carwash_sql_after($car["entry"], $parkSec);
         return $ogp;
     }
     $ogp["f_substatus"] = 1;

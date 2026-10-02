@@ -274,6 +274,30 @@ abstract class AppLocalizations {
   /// **'Use SSL'**
   String get useSsl;
 
+  /// No description provided for @testTimeScale.
+  ///
+  /// In en, this message translates to:
+  /// **'Test time scale'**
+  String get testTimeScale;
+
+  /// No description provided for @testTimeScaleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, the coefficient divides the 60-minute wash and the free-parking end at 120 minutes after bay entry.'**
+  String get testTimeScaleHint;
+
+  /// No description provided for @testTimeCoefficient.
+  ///
+  /// In en, this message translates to:
+  /// **'Test time coefficient'**
+  String get testTimeCoefficient;
+
+  /// No description provided for @testTimeScaleSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the test time scale'**
+  String get testTimeScaleSaveFailed;
+
   /// No description provided for @amount.
   ///
   /// In en, this message translates to:

@@ -5,6 +5,8 @@
  * after entry (the bay is free). After that the car is paid parking and leaves
  * the schedule. Queue is arrival order and moves only into a bay that is not
  * in its wash hour. The clock starts at bay assignment, not at order time.
+ * Optional test scale {enabled, coeff} divides only the 60- and 120-minute
+ * clocks. Omit it, or leave enabled off, and the durations stay 60 and 120.
  *
  * Status pairs already used by goods-in-progress:
  *   1/1 queue, 2/2 wash (bay), 3/4 free parking, 4/5 paid parking (off schedule).
@@ -19,6 +21,24 @@
   var BAY_COUNT = 3;
   var WASH_MS = 60 * 60 * 1000;
   var PARK_END_MS = 120 * 60 * 1000;
+
+  function resolveDurations(scale) {
+    var wash = WASH_MS;
+    var park = PARK_END_MS;
+    var enabled = 0;
+    var coeff = 60;
+    if (scale && scale.coeff != null && scale.coeff !== "") {
+      var stored = parseInt(scale.coeff, 10);
+      if (isFinite(stored) && stored >= 1) coeff = stored;
+      if (coeff > 1000000) coeff = 1000000;
+    }
+    if (scale && (scale.enabled === true || scale.enabled === 1 || scale.enabled === "1")) {
+      enabled = 1;
+      wash = WASH_MS / coeff;
+      park = PARK_END_MS / coeff;
+    }
+    return { enabled: enabled, coeff: coeff, washMs: wash, parkEndMs: park };
+  }
 
   function lowestFreeBay(used) {
     var b;
@@ -88,7 +108,10 @@
    * @param {number} nowMs
    * @returns {Array} next cars, including ones that just went to paid parking
    */
-  function advanceBaySchedule(input, nowMs) {
+  function advanceBaySchedule(input, nowMs, scale) {
+    var dur = resolveDurations(scale);
+    var washMs = dur.washMs;
+    var parkMs = dur.parkEndMs;
     var cars = [];
     var src = input || [];
     var n;
@@ -104,11 +127,11 @@
       }
       if (isWashState(c)) {
         if (c.entryMs == null) c.entryMs = nowMs;
-        if (nowMs >= c.entryMs + PARK_END_MS) {
+        if (nowMs >= c.entryMs + parkMs) {
           markPaid(c);
           continue;
         }
-        if (nowMs >= c.entryMs + WASH_MS) {
+        if (nowMs >= c.entryMs + washMs) {
           markFree(c);
         } else {
           c.status = 2;
@@ -116,7 +139,7 @@
           c.paid = false;
         }
       } else if (isFreeState(c)) {
-        if (c.entryMs == null || nowMs >= c.entryMs + PARK_END_MS) {
+        if (c.entryMs == null || nowMs >= c.entryMs + parkMs) {
           markPaid(c);
           continue;
         }
@@ -191,6 +214,7 @@
     BAY_COUNT: BAY_COUNT,
     WASH_MS: WASH_MS,
     PARK_END_MS: PARK_END_MS,
+    resolveDurations: resolveDurations,
     advanceBaySchedule: advanceBaySchedule,
     onSchedule: onSchedule,
     minutesLeft: minutesLeft

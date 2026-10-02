@@ -1,5 +1,6 @@
 import 'package:carwash/screens/app/model.dart';
 import 'package:carwash/utils/global.dart';
+import 'package:carwash/utils/prefs.dart';
 
 bool _part2HasPartLinks(List<Map<String, dynamic>> part2) =>
     part2.any((p) => p['f_part'] != null);
@@ -103,6 +104,17 @@ class Data {
   static const int bayCount = 3;
   static const int washOccupyMinutes = 60;
 
+  /// Wash occupancy. Test mode divides the 60 minutes; off stays exactly 60.
+  Duration washOccupyDuration() {
+    const baseMs = washOccupyMinutes * 60 * 1000;
+    if (prefs.string(AppModel.prefKeyBayTestTimeScale) != '1') {
+      return const Duration(milliseconds: baseMs);
+    }
+    final coeff =
+        AppModel.normalizedBayTestCoeff(prefs.string(AppModel.prefKeyBayTestTimeCoeff));
+    return Duration(milliseconds: (baseMs / coeff).round());
+  }
+
   int get washBoxCount => bayCount;
 
   int get dryBoxCount => dry.length;
@@ -146,7 +158,7 @@ class Data {
       final bay = int.tryParse('${e['f_table']}') ?? 0;
       if (bay < 1 || bay > bayCount) continue;
       final begin = strToDateTime(e['f_washdate']);
-      final freeAt = begin.add(const Duration(minutes: washOccupyMinutes));
+      final freeAt = begin.add(washOccupyDuration());
       e['f_begin'] = begin;
       e['f_done'] = freeAt;
       if (freeAt.isAfter(bayFreeAt[bay]!)) {
@@ -175,7 +187,7 @@ class Data {
       e['f_table'] = bestBay;
       e['f_tablename'] = 'BOX $bestBay';
       e['f_begin'] = start;
-      e['f_done'] = start.add(const Duration(minutes: washOccupyMinutes));
+      e['f_done'] = start.add(washOccupyDuration());
       bayFreeAt[bestBay] = e['f_done'] as DateTime;
     }
   }

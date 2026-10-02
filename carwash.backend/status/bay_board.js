@@ -6,6 +6,12 @@
   var sched = window.carwashBaySchedule;
   var lastRows = [];
   var timer = null;
+  var scale = null;
+
+  function durations() {
+    if (sched && sched.resolveDurations) return sched.resolveDurations(scale);
+    return { washMs: sched.WASH_MS, parkEndMs: sched.PARK_END_MS };
+  }
 
   function tr(key, vars) {
     if (window.tvI18n && window.tvI18n.t) return window.tvI18n.t(key, vars);
@@ -208,6 +214,7 @@
     if (!columns || !freeEl || !queueEl || !sched) return;
 
     var now = Date.now();
+    var dur = durations();
     var groups = groupRows(lastRows);
     var bays = [null, null, null, null];
     var free = [];
@@ -243,7 +250,7 @@
       var list = document.createElement("div");
       list.className = "list";
       if (bays[i]) {
-        var leftWash = bays[i].entry == null ? 0 : bays[i].entry + sched.WASH_MS - now;
+        var leftWash = bays[i].entry == null ? 0 : bays[i].entry + dur.washMs - now;
         list.appendChild(card(bays[i], sched.minutesLeft(leftWash)));
       } else {
         list.appendChild(emptyNote());
@@ -256,7 +263,7 @@
     clear(freeEl);
     if (!free.length) freeEl.appendChild(emptyNote());
     for (i = 0; i < free.length; i++) {
-      var leftFree = free[i].entry == null ? 0 : free[i].entry + sched.PARK_END_MS - now;
+      var leftFree = free[i].entry == null ? 0 : free[i].entry + dur.parkEndMs - now;
       freeEl.appendChild(card(free[i], sched.minutesLeft(leftFree)));
     }
 
@@ -277,8 +284,9 @@
     }
   }
 
-  function render(rows) {
+  function render(rows, bayTime) {
     lastRows = rows || [];
+    if (bayTime && typeof bayTime === "object") scale = bayTime;
     paint();
     if (timer == null) timer = setInterval(paint, 20000);
   }

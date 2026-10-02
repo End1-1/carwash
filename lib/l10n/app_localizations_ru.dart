@@ -99,6 +99,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get useSsl => 'Использовать SSL';
 
   @override
+  String get testTimeScale => 'Тестовый масштаб времени';
+
+  @override
+  String get testTimeScaleHint =>
+      'Если включено, коэффициент делит 60 минут мойки и конец бесплатной парковки через 120 минут после заезда в бокс.';
+
+  @override
+  String get testTimeCoefficient => 'Коэффициент тестового времени';
+
+  @override
+  String get testTimeScaleSaveFailed =>
+      'Не удалось сохранить тестовый масштаб времени';
+
+  @override
   String get amount => 'Сумма';
 
   @override

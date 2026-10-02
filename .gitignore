@@ -35,3 +35,6 @@ build/
 .idea/
 .dart_tool/
 /.dart_tool/
+
+bay_time_scale.json
+bay_time_scale.json.tmp
