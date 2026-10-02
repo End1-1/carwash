@@ -834,12 +834,9 @@ class AppModel {
     return 'Order API error';
   }
 
-  /// Минуты из позиции корзины (`+`/`-` в [DishBasket]); для `AddDish` / `f_data`.
+  /// Wash+dry on a bay is always one hour. Service name and staff input do not change it.
   int _basketCookingMinutes(Map<String, dynamic> e) {
-    final v = e['f_cooking_time'];
-    if (v == null) return 0;
-    if (v is num) return v.round();
-    return int.tryParse(v.toString()) ?? 0;
+    return 60;
   }
 
   Map<String, dynamic>? _menuDishById(dynamic dishId) {

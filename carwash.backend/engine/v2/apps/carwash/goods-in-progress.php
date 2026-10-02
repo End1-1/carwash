@@ -9,6 +9,9 @@ class GoodsInProgress extends Auth
 {
     public function get($params)
     {
+        require_once __DIR__ . "/bay_schedule.php";
+        carwash_bay_schedule_apply($this);
+
         $sql = <<<EOD
         SELECT oh.f_id as f_header_id, og.f_id, JSON_DETAILED(oh.f_data) AS f_header_data, ogp.f_daily_number, ogp.f_status, cg.f_name, JSON_DETAILED(ogp.f_data) as f_ogp_data,
         coalesce(json_value(og.f_data, '$.f_cooking_time'), json_value(cg.f_data, '$.f_cooking_time')) as f_cooking_time,

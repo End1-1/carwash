@@ -255,7 +255,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyModeReport => 'Session report';
 
   @override
-  String get historyModeDoneParking => 'Done / parking';
+  String get historyModeDoneParking => 'Free / paid parking';
 
   @override
   String get historyColRow => '#';
@@ -310,6 +310,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyStatusParking => 'Parking';
+
+  @override
+  String get historyStatusFreeParking => 'Free parking';
+
+  @override
+  String get historyStatusPaidParking => 'Paid parking';
 
   @override
   String get historyNoGoodsRows => 'No done or parking rows';

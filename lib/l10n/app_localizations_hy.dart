@@ -253,7 +253,7 @@ class AppLocalizationsHy extends AppLocalizations {
   String get historyModeReport => 'Փոխի հաշվետվություն';
 
   @override
-  String get historyModeDoneParking => 'Ավարտված / կայան';
+  String get historyModeDoneParking => 'Անվճար / վճարովի պարկինգ';
 
   @override
   String get historyColRow => 'Տող';
@@ -308,6 +308,12 @@ class AppLocalizationsHy extends AppLocalizations {
 
   @override
   String get historyStatusParking => 'Կայան';
+
+  @override
+  String get historyStatusFreeParking => 'Անվճար պարկինգ';
+
+  @override
+  String get historyStatusPaidParking => 'Վճարովի պարկինգ';
 
   @override
   String get historyNoGoodsRows => 'Չկան «ավարտված» կամ «կայան» տողեր';
